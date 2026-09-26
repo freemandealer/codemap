@@ -1,0 +1,878 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codemap:schema:0.1",
+  "title": "CodeMap v0.1 结构契约草案",
+  "description": "结构校验需与 docs/03-map-data-contract.md 的跨对象及源码核验配合；此 Schema 不证明解释正确。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "mapId",
+    "title",
+    "language",
+    "scope",
+    "snapshot",
+    "rootNodeId",
+    "entities",
+    "nodes",
+    "ports",
+    "relations",
+    "flows",
+    "evidence",
+    "snippets",
+    "primaryPath",
+    "coverage"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "0.1"
+    },
+    "mapId": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "language": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 35
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "snapshot": {
+      "$ref": "#/$defs/snapshot"
+    },
+    "rootNodeId": {
+      "$ref": "#/$defs/id"
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entity"
+      },
+      "minItems": 1
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/node"
+      },
+      "minItems": 1
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/port"
+      },
+      "minItems": 0
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation"
+      },
+      "minItems": 0
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      },
+      "minItems": 0
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      },
+      "minItems": 1
+    },
+    "snippets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/snippet"
+      },
+      "minItems": 0
+    },
+    "primaryPath": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "uniqueItems": true,
+      "minItems": 1
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 96,
+      "pattern": "^[A-Za-z][A-Za-z0-9._:-]*$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "audience",
+        "inScope",
+        "outOfScope",
+        "assumptions",
+        "entryEntityIds"
+      ],
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audience": {
+          "type": "string",
+          "minLength": 1
+        },
+        "viewpoint": {
+          "enum": ["flow", "architecture"],
+          "description": "主阅读视角：流程或架构。省略时保持通用导读；该字段不自动重组讲解树或创建关系。"
+        },
+        "inScope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "outOfScope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "entryEntityIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "dirty",
+        "configuration",
+        "files"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "git",
+            "content"
+          ]
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "repositoryUrl": {
+          "type": "string",
+          "pattern": "^https://"
+        },
+        "configuration": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/file"
+          },
+          "minItems": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "git"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "revision"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "content"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "revision": false,
+              "dirty": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "canonicalNodeId",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "function",
+            "type",
+            "interface",
+            "state",
+            "external",
+            "concept"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalNodeId": {
+          "$ref": "#/$defs/id"
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "function",
+                  "type",
+                  "interface"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidenceIds": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "parentId",
+        "kind",
+        "label",
+        "summary",
+        "entityIds",
+        "evidenceIds",
+        "claimStatus",
+        "order",
+        "importance",
+        "snippetIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "enum": [
+            "topic",
+            "module",
+            "mechanism",
+            "function",
+            "step",
+            "code",
+            "boundary"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "entityIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "claimStatus": {
+          "enum": [
+            "source",
+            "inferred",
+            "unknown",
+            "editorial"
+          ]
+        },
+        "claimReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "importance": {
+          "enum": [
+            "primary",
+            "supporting"
+          ]
+        },
+        "snippetIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "inputs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "outputs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "invariants": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "claimStatus": {
+                "enum": [
+                  "inferred",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "claimReason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "claimStatus": {
+                "const": "source"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidenceIds": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "entityId",
+        "label",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "entityId": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "input",
+            "output",
+            "callsite",
+            "interface"
+          ]
+        },
+        "detailNodeId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceEntityId",
+        "targetEntityId",
+        "type",
+        "label",
+        "role",
+        "claimStatus",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "sourceEntityId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetEntityId": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "enum": [
+            "call",
+            "dispatch",
+            "read",
+            "write",
+            "produce",
+            "consume",
+            "control",
+            "ownership",
+            "return",
+            "dependency"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "main",
+            "branch",
+            "failure",
+            "supporting"
+          ]
+        },
+        "claimStatus": {
+          "enum": [
+            "source",
+            "inferred",
+            "unknown"
+          ]
+        },
+        "claimReason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourcePortId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetPortId": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "claimStatus": {
+                "enum": [
+                  "inferred",
+                  "unknown"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "claimReason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "claimStatus": {
+                "const": "source"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidenceIds": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "ownerNodeId",
+        "fromNodeId",
+        "toNodeId",
+        "kind",
+        "label",
+        "evidenceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "ownerNodeId": {
+          "$ref": "#/$defs/id"
+        },
+        "fromNodeId": {
+          "$ref": "#/$defs/id"
+        },
+        "toNodeId": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "next",
+            "branch",
+            "loop",
+            "exception"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "snapshotId",
+        "path",
+        "startLine",
+        "endLine",
+        "verification"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "snapshotId": {
+          "$ref": "#/$defs/id"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "verification": {
+          "enum": [
+            "matched",
+            "unverified"
+          ]
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "snippet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "evidenceId",
+        "label",
+        "language",
+        "segments",
+        "preservedSemantics"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "evidenceId": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/sourceSegment"
+              },
+              {
+                "$ref": "#/$defs/omissionSegment"
+              }
+            ]
+          }
+        },
+        "preservedSemantics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "sourceSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "startLine",
+        "endLine",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "const": "source"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 200000
+        }
+      }
+    },
+    "omissionSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "startLine",
+        "endLine",
+        "reason"
+      ],
+      "properties": {
+        "kind": {
+          "const": "omission"
+        },
+        "startLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "endLine": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completePaths",
+        "partialPaths",
+        "excludedPaths",
+        "openQuestions"
+      ],
+      "properties": {
+        "completePaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "partialPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "excludedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "openQuestions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "codemap-local",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evidence-backed code maps with an offline semantic zoom reader",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "codemap": "dist/cli.js"
+  },
+  "exports": "./dist/index.js",
+  "files": [
+    "dist",
+    "schemas",
+    "skills/codemap",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && npm run typecheck && node --import tsx --test tests/*.test.ts",
+    "test:e2e": "npm run demo && playwright test",
+    "demo": "npm run build && node scripts/demo.mjs",
+    "package:skill": "npm run build && node scripts/package-skill.mjs",
+    "benchmark": "npm run build && node dist/benchmark.js",
+    "check:browsers": "node scripts/check-browsers.mjs",
+    "verify:release": "node scripts/verify-release.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/jsdom": "30.0.0",
+    "@types/node": "26.6.2",
+    "esbuild": "0.28.2",
+    "jsdom": "30.1.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

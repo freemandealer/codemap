@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CodeMap · 生成与阅读架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1060, 730]
+  },
+  "components": [
+    { "id": "reading-input", "type": "external", "label": "代码与阅读目标", "sublabel": "限定范围 · 固定快照", "pos": [50, 80], "size": [200, 76] },
+    { "id": "skill-agent", "type": "backend", "label": "Code Agent + Skill", "sublabel": "理解 · 分层 · 标注证据", "pos": [430, 80], "size": [200, 76] },
+    { "id": "semantic-map", "type": "database", "label": "CodeMap JSON", "sublabel": "语义树 · 关系图 · 源码", "pos": [810, 80], "size": [200, 76] },
+    { "id": "map-validator", "type": "security", "label": "结构与证据校验", "sublabel": "引用有效 · 片段一致", "pos": [810, 325], "size": [200, 76] },
+    { "id": "map-compiler", "type": "backend", "label": "布局与打包", "sublabel": "确定性编译 · 离线资源", "pos": [430, 325], "size": [200, 76] },
+    { "id": "html-artifact", "type": "database", "label": "独立 HTML", "sublabel": "运行时与地图一起交付", "pos": [50, 325], "size": [200, 76] },
+    { "id": "local-viewer", "type": "frontend", "label": "浏览器阅读器", "sublabel": "语义缩放 · 关系与证据", "pos": [50, 575], "size": [200, 76] },
+    { "id": "static-host", "type": "cloud", "label": "用户静态站点", "sublabel": "分享链接 · 博客内嵌", "pos": [430, 575], "size": [200, 76] }
+  ],
+  "connections": [
+    { "id": "read-snapshot", "from": "reading-input", "to": "skill-agent", "label": "只读分析", "variant": "emphasis" },
+    { "id": "author-map", "from": "skill-agent", "to": "semantic-map", "label": "结构化生成", "variant": "emphasis" },
+    { "id": "validate-map", "from": "semantic-map", "to": "map-validator", "label": "验证", "variant": "emphasis", "labelAt": [910, 240] },
+    { "id": "compile-valid", "from": "map-validator", "to": "map-compiler", "label": "通过后编译", "variant": "emphasis" },
+    { "id": "package-artifact", "from": "map-compiler", "to": "html-artifact", "label": "原子交付", "variant": "emphasis" },
+    { "id": "open-offline", "from": "html-artifact", "to": "local-viewer", "label": "离线打开", "variant": "emphasis", "labelAt": [150, 485] },
+    { "id": "publish-static", "from": "html-artifact", "to": "static-host", "label": "用户发布", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "语义由 Agent 构建", "items": ["按阅读目标组织抽象层次", "结论与关系附代码证据"] },
+    { "dot": "emerald", "title": "阅读不依赖 LLM", "items": ["缩放与连线投影由程序计算", "静态托管即可分享和内嵌"] }
+  ]
+}

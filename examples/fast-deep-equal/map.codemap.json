@@ -1,0 +1,701 @@
+{
+  "schemaVersion": "0.1",
+  "mapId": "fast-deep-equal-3.1.3",
+  "title": "fast-deep-equal · 深比较怎样提前返回",
+  "language": "zh-CN",
+  "scope": {
+    "question": "默认 CommonJS equal 如何比较数组和对象，在哪些条件下提前返回？",
+    "audience": "熟悉 JavaScript、初次阅读此依赖的开发者",
+    "inScope": [
+      "3.1.3 默认入口",
+      "数组与对象递归",
+      "RegExp、valueOf、toString 与 NaN 分支"
+    ],
+    "outOfScope": [
+      "ES6 Map/Set/TypedArray 入口",
+      "React 专用入口",
+      "循环对象支持",
+      "性能排名"
+    ],
+    "assumptions": [
+      "输入可能提供自定义 valueOf/toString；不推断其业务实现",
+      "只建模当前 index.js 的静态分支，不宣称可比较所有 JavaScript 值"
+    ],
+    "entryEntityIds": [
+      "equal"
+    ]
+  },
+  "snapshot": {
+    "id": "snap-8ee28305b0ae6570",
+    "kind": "content",
+    "dirty": false,
+    "configuration": [
+      "fast-deep-equal@3.1.3 的 CommonJS 默认入口；未执行目标项目的安装、构建或启动脚本",
+      "源文件改名为 index.cjs 以固定 CommonJS 格式，内容逐字节保留"
+    ],
+    "files": [
+      {
+        "path": "examples/fast-deep-equal/source/LICENSE",
+        "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a"
+      },
+      {
+        "path": "examples/fast-deep-equal/source/index.cjs",
+        "sha256": "eb469e206280321a3878f2335ec98aa2104a155079d8ed83a23029098dccd215"
+      }
+    ]
+  },
+  "rootNodeId": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "parentId": null,
+      "kind": "topic",
+      "label": "从同一值到逐元素比较",
+      "summary": "先利用能立即得出结果的条件，再递归检查数组或对象；每个失败分支直接返回 false。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 0,
+      "importance": "primary"
+    },
+    {
+      "id": "algorithm",
+      "parentId": "root",
+      "kind": "mechanism",
+      "label": "按输入形态分流",
+      "summary": "严格相等、对象形态、特殊转换和逐项递归按固定顺序决定结果。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 1,
+      "importance": "primary"
+    },
+    {
+      "id": "equal",
+      "parentId": "algorithm",
+      "kind": "function",
+      "label": "equal(a, b)",
+      "summary": "相同引用或严格相等值立即成功；对象要求构造器一致，再分数组、特殊对象和普通键比较；其他值只对两个 NaN 兜底成功。",
+      "entityIds": [
+        "equal"
+      ],
+      "evidenceIds": [
+        "equal"
+      ],
+      "snippetIds": [
+        "s-equal"
+      ],
+      "claimStatus": "source",
+      "order": 2,
+      "importance": "primary"
+    },
+    {
+      "id": "identity",
+      "parentId": "equal",
+      "kind": "step",
+      "label": "短路与对象入口",
+      "summary": "a === b 返回 true。只有双方都是真值对象才进入对象分支；构造器不同立即失败。",
+      "entityIds": [],
+      "evidenceIds": [
+        "identity"
+      ],
+      "snippetIds": [
+        "s-identity"
+      ],
+      "claimStatus": "source",
+      "order": 3,
+      "importance": "primary"
+    },
+    {
+      "id": "array",
+      "parentId": "equal",
+      "kind": "step",
+      "label": "数组按位置递归",
+      "summary": "长度先比较，再从末尾逐个调用 equal；任一位置不等立即返回 false，全部通过才成功。",
+      "entityIds": [],
+      "evidenceIds": [
+        "array"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 4,
+      "importance": "primary"
+    },
+    {
+      "id": "array-code",
+      "parentId": "array",
+      "kind": "code",
+      "label": "查看递归与提前返回",
+      "summary": "这里的递归调用对应一个数组元素调用点。循环次数取决于输入，不等于图里的关系数量。",
+      "entityIds": [],
+      "evidenceIds": [
+        "array"
+      ],
+      "snippetIds": [
+        "s-array"
+      ],
+      "claimStatus": "source",
+      "order": 5,
+      "importance": "primary"
+    },
+    {
+      "id": "special",
+      "parentId": "equal",
+      "kind": "step",
+      "label": "特殊对象提前决定结果",
+      "summary": "RegExp 比 source 与 flags；重写 valueOf 或 toString 时调用双方方法并严格比较结果。命中后不再检查对象键。",
+      "entityIds": [],
+      "evidenceIds": [
+        "special"
+      ],
+      "snippetIds": [
+        "s-special"
+      ],
+      "claimStatus": "source",
+      "order": 6,
+      "importance": "primary"
+    },
+    {
+      "id": "object",
+      "parentId": "equal",
+      "kind": "step",
+      "label": "对象先查键，再查值",
+      "summary": "Object.keys 获取可枚举自有字符串键；核对数量及 b 的键归属后，再递归比较对应值。",
+      "entityIds": [],
+      "evidenceIds": [
+        "object"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 7,
+      "importance": "primary"
+    },
+    {
+      "id": "object-code",
+      "parentId": "object",
+      "kind": "code",
+      "label": "查看键归属与值递归",
+      "summary": "先排除键数量或归属不符，再逐键比较；第一次不等立即返回 false。",
+      "entityIds": [],
+      "evidenceIds": [
+        "object"
+      ],
+      "snippetIds": [
+        "s-object"
+      ],
+      "claimStatus": "source",
+      "order": 8,
+      "importance": "primary"
+    },
+    {
+      "id": "nan",
+      "parentId": "equal",
+      "kind": "step",
+      "label": "非对象值的最后兜底",
+      "summary": "严格相等已失败且没有进入对象分支时，只有双方各自不等于自身才返回 true，即两个 NaN。",
+      "entityIds": [],
+      "evidenceIds": [
+        "nan"
+      ],
+      "snippetIds": [
+        "s-nan"
+      ],
+      "claimStatus": "source",
+      "order": 9,
+      "importance": "primary"
+    },
+    {
+      "id": "boundaries",
+      "parentId": "root",
+      "kind": "module",
+      "label": "递归与动态行为的边界",
+      "summary": "调用方提供的转换方法不在本图内；默认实现不维护已访问对象集合。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 10,
+      "importance": "primary"
+    },
+    {
+      "id": "valueOf",
+      "parentId": "boundaries",
+      "kind": "boundary",
+      "label": "输入对象的 valueOf",
+      "summary": "a 和 b 的具体方法取决于输入对象；此处保留调用位置，不伪造某个确定实现。",
+      "entityIds": [
+        "valueOf"
+      ],
+      "evidenceIds": [
+        "special"
+      ],
+      "snippetIds": [
+        "s-special"
+      ],
+      "claimStatus": "source",
+      "order": 11,
+      "importance": "primary"
+    },
+    {
+      "id": "toString",
+      "parentId": "boundaries",
+      "kind": "boundary",
+      "label": "输入对象的 toString",
+      "summary": "仅在没有先由 RegExp 或 valueOf 返回时到达；具体方法由输入对象决定。",
+      "entityIds": [
+        "toString"
+      ],
+      "evidenceIds": [
+        "special"
+      ],
+      "snippetIds": [
+        "s-special"
+      ],
+      "claimStatus": "source",
+      "order": 12,
+      "importance": "primary"
+    },
+    {
+      "id": "cycles",
+      "parentId": "boundaries",
+      "kind": "boundary",
+      "label": "不保证循环图终止",
+      "summary": "此默认入口没有访问集合或成对缓存。不同的循环对象可能无限递归；相同引用会在第一行判断处返回。",
+      "entityIds": [],
+      "evidenceIds": [
+        "equal"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 13,
+      "importance": "primary"
+    },
+    {
+      "id": "keys-boundary",
+      "parentId": "boundaries",
+      "kind": "boundary",
+      "label": "键范围与异常边界",
+      "summary": "Object.keys 不包含 symbol 和不可枚举属性；属性读取或自定义转换可能抛错，本函数没有 catch。",
+      "entityIds": [],
+      "evidenceIds": [
+        "object",
+        "special"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 14,
+      "importance": "primary"
+    },
+    {
+      "id": "license",
+      "parentId": "root",
+      "kind": "boundary",
+      "label": "源码许可与来源",
+      "summary": "fast-deep-equal@3.1.3；版权归 Evgeny Poberezkin，MIT License。此许可文本随单文件 HTML 内嵌保留。",
+      "entityIds": [],
+      "evidenceIds": [
+        "license"
+      ],
+      "snippetIds": [
+        "s-license"
+      ],
+      "claimStatus": "source",
+      "order": 15,
+      "importance": "primary"
+    }
+  ],
+  "entities": [
+    {
+      "id": "equal",
+      "kind": "function",
+      "label": "equal(a, b)",
+      "symbol": "equal(a, b)",
+      "canonicalNodeId": "equal",
+      "evidenceIds": [
+        "equal"
+      ]
+    },
+    {
+      "id": "valueOf",
+      "kind": "external",
+      "label": "输入对象的 valueOf",
+      "symbol": "输入对象的 valueOf",
+      "canonicalNodeId": "valueOf",
+      "evidenceIds": [
+        "special"
+      ]
+    },
+    {
+      "id": "toString",
+      "kind": "external",
+      "label": "输入对象的 toString",
+      "symbol": "输入对象的 toString",
+      "canonicalNodeId": "toString",
+      "evidenceIds": [
+        "special"
+      ]
+    }
+  ],
+  "ports": [
+    {
+      "id": "array-site",
+      "entityId": "equal",
+      "label": "数组元素调用点",
+      "kind": "callsite",
+      "detailNodeId": "array"
+    },
+    {
+      "id": "object-site",
+      "entityId": "equal",
+      "label": "属性值调用点",
+      "kind": "callsite",
+      "detailNodeId": "object"
+    }
+  ],
+  "relations": [
+    {
+      "id": "array-recursion",
+      "sourceEntityId": "equal",
+      "targetEntityId": "equal",
+      "type": "call",
+      "label": "数组元素递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "array"
+      ],
+      "condition": "数组长度相同；按倒序逐项，前项未提前失败",
+      "sourcePortId": "array-site"
+    },
+    {
+      "id": "object-recursion",
+      "sourceEntityId": "equal",
+      "targetEntityId": "equal",
+      "type": "call",
+      "label": "对象属性值递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "object"
+      ],
+      "condition": "键数量与归属检查通过；前项未提前失败",
+      "sourcePortId": "object-site"
+    },
+    {
+      "id": "a-value",
+      "sourceEntityId": "equal",
+      "targetEntityId": "valueOf",
+      "type": "dispatch",
+      "label": "调用 a.valueOf()",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "special"
+      ],
+      "condition": "a.valueOf 不同于 Object.prototype.valueOf",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    },
+    {
+      "id": "b-value",
+      "sourceEntityId": "equal",
+      "targetEntityId": "valueOf",
+      "type": "dispatch",
+      "label": "调用 b.valueOf()",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "special"
+      ],
+      "condition": "进入 valueOf 分支，且 a.valueOf() 未抛错",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    },
+    {
+      "id": "a-string",
+      "sourceEntityId": "equal",
+      "targetEntityId": "toString",
+      "type": "dispatch",
+      "label": "调用 a.toString()",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "special"
+      ],
+      "condition": "未从 RegExp/valueOf 返回且 a.toString 为重写方法",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    },
+    {
+      "id": "b-string",
+      "sourceEntityId": "equal",
+      "targetEntityId": "toString",
+      "type": "dispatch",
+      "label": "调用 b.toString()",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "special"
+      ],
+      "condition": "进入 toString 分支且 a.toString() 未抛错",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    }
+  ],
+  "flows": [
+    {
+      "id": "to-array",
+      "ownerNodeId": "equal",
+      "fromNodeId": "identity",
+      "toNodeId": "array",
+      "kind": "branch",
+      "label": "非严格相等；双方对象、构造器相同且 a 为数组",
+      "evidenceIds": [
+        "equal"
+      ]
+    },
+    {
+      "id": "to-special",
+      "ownerNodeId": "equal",
+      "fromNodeId": "identity",
+      "toNodeId": "special",
+      "kind": "branch",
+      "label": "非严格相等；双方对象、构造器相同且不是数组",
+      "evidenceIds": [
+        "equal"
+      ]
+    },
+    {
+      "id": "to-nan",
+      "ownerNodeId": "equal",
+      "fromNodeId": "identity",
+      "toNodeId": "nan",
+      "kind": "branch",
+      "label": "非严格相等，且并非双方真值对象",
+      "evidenceIds": [
+        "equal"
+      ]
+    },
+    {
+      "id": "to-object",
+      "ownerNodeId": "equal",
+      "fromNodeId": "special",
+      "toNodeId": "object",
+      "kind": "branch",
+      "label": "不属于正则，且转换方法未重写",
+      "evidenceIds": [
+        "equal"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "equal",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 7,
+      "endLine": 46,
+      "verification": "unverified",
+      "note": "equal 完整默认实现"
+    },
+    {
+      "id": "identity",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 7,
+      "endLine": 11,
+      "verification": "unverified",
+      "note": "严格相等、对象检查和构造器检查"
+    },
+    {
+      "id": "array",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 14,
+      "endLine": 20,
+      "verification": "unverified",
+      "note": "长度检查、倒序递归与提前失败"
+    },
+    {
+      "id": "special",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 24,
+      "endLine": 26,
+      "verification": "unverified",
+      "note": "正则与自定义值/字符串转换优先返回"
+    },
+    {
+      "id": "object",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 28,
+      "endLine": 41,
+      "verification": "unverified",
+      "note": "可枚举自有字符串键数量、归属与值递归"
+    },
+    {
+      "id": "nan",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/index.cjs",
+      "startLine": 44,
+      "endLine": 46,
+      "verification": "unverified",
+      "note": "对象分支之外的 NaN 兜底"
+    },
+    {
+      "id": "license",
+      "snapshotId": "snap-8ee28305b0ae6570",
+      "path": "examples/fast-deep-equal/source/LICENSE",
+      "startLine": 1,
+      "endLine": 21,
+      "verification": "unverified",
+      "note": "原项目完整 MIT 许可与署名"
+    }
+  ],
+  "snippets": [
+    {
+      "id": "s-equal",
+      "evidenceId": "equal",
+      "label": "equal 完整默认实现",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 7,
+          "endLine": 46,
+          "text": "module.exports = function equal(a, b) {\n  if (a === b) return true;\n\n  if (a && b && typeof a == 'object' && typeof b == 'object') {\n    if (a.constructor !== b.constructor) return false;\n\n    var length, i, keys;\n    if (Array.isArray(a)) {\n      length = a.length;\n      if (length != b.length) return false;\n      for (i = length; i-- !== 0;)\n        if (!equal(a[i], b[i])) return false;\n      return true;\n    }\n\n\n\n    if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;\n    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();\n    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();\n\n    keys = Object.keys(a);\n    length = keys.length;\n    if (length !== Object.keys(b).length) return false;\n\n    for (i = length; i-- !== 0;)\n      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;\n\n    for (i = length; i-- !== 0;) {\n      var key = keys[i];\n\n      if (!equal(a[key], b[key])) return false;\n    }\n\n    return true;\n  }\n\n  // true if both NaN, false otherwise\n  return a!==a && b!==b;\n};"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-identity",
+      "evidenceId": "identity",
+      "label": "严格相等、对象检查和构造器检查",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 7,
+          "endLine": 11,
+          "text": "module.exports = function equal(a, b) {\n  if (a === b) return true;\n\n  if (a && b && typeof a == 'object' && typeof b == 'object') {\n    if (a.constructor !== b.constructor) return false;"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-array",
+      "evidenceId": "array",
+      "label": "长度检查、倒序递归与提前失败",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 14,
+          "endLine": 20,
+          "text": "    if (Array.isArray(a)) {\n      length = a.length;\n      if (length != b.length) return false;\n      for (i = length; i-- !== 0;)\n        if (!equal(a[i], b[i])) return false;\n      return true;\n    }"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-special",
+      "evidenceId": "special",
+      "label": "正则与自定义值/字符串转换优先返回",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 24,
+          "endLine": 26,
+          "text": "    if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;\n    if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();\n    if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-object",
+      "evidenceId": "object",
+      "label": "可枚举自有字符串键数量、归属与值递归",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 28,
+          "endLine": 41,
+          "text": "    keys = Object.keys(a);\n    length = keys.length;\n    if (length !== Object.keys(b).length) return false;\n\n    for (i = length; i-- !== 0;)\n      if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;\n\n    for (i = length; i-- !== 0;) {\n      var key = keys[i];\n\n      if (!equal(a[key], b[key])) return false;\n    }\n\n    return true;"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-nan",
+      "evidenceId": "nan",
+      "label": "对象分支之外的 NaN 兜底",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 44,
+          "endLine": 46,
+          "text": "  // true if both NaN, false otherwise\n  return a!==a && b!==b;\n};"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-license",
+      "evidenceId": "license",
+      "label": "原项目完整 MIT 许可与署名",
+      "language": "text",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 1,
+          "endLine": 21,
+          "text": "MIT License\n\nCopyright (c) 2017 Evgeny Poberezkin\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    }
+  ],
+  "primaryPath": [
+    "root",
+    "algorithm",
+    "equal",
+    "array",
+    "array-code"
+  ],
+  "coverage": {
+    "completePaths": [
+      "默认入口全部静态返回分支",
+      "两个独立递归调用点",
+      "RegExp、转换方法和 NaN 语义"
+    ],
+    "partialPaths": [
+      "自定义转换方法只记录调用点，不绑定具体业务实现"
+    ],
+    "excludedPaths": [
+      "ES6 Map/Set/TypedArray 入口",
+      "React 专用入口",
+      "循环对象支持",
+      "性能排名"
+    ],
+    "openQuestions": [
+      "地图尚未完成真实浏览器目视检查和独立读者试用"
+    ]
+  }
+}

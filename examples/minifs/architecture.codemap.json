@@ -1,0 +1,1162 @@
+{
+  "schemaVersion": "0.1",
+  "mapId": "minifs-architecture-v1",
+  "title": "MiniFS：模块、接口与共享对象",
+  "language": "zh-CN",
+  "scope": {
+    "viewpoint": "architecture",
+    "question": "MiniFS 由哪些职责模块组成，接口、名称空间和文件槽位怎样协作？",
+    "audience": "熟悉 C，第一次阅读本例",
+    "inScope": [
+      "打开接口、名称空间、后端协议与实现、文件槽位的职责边界",
+      "操作表绑定、模块间调用与共享对象读写",
+      "从后端接口深入实现源码，打开步骤保留在模块内部"
+    ],
+    "outOfScope": [
+      "真实 Linux VFS",
+      "并发、锁、引用计数、文件描述符表",
+      "成功后的关闭 API",
+      "无副作用的 audit_open 占位实现"
+    ],
+    "assumptions": [
+      "本例是单线程教学代码",
+      "后端错误通过测试夹具设置模拟状态",
+      "模块按职责归纳，不按单文件目录或执行先后划分；主视角为架构",
+      "架构概览覆盖本例关键协作，不代表完整文件系统或真实 Linux I/O"
+    ],
+    "entryEntityIds": [
+      "e-open",
+      "e-ops",
+      "e-file",
+      "e-inode"
+    ]
+  },
+  "snapshot": {
+    "id": "snap-minifs-v1",
+    "kind": "content",
+    "dirty": false,
+    "configuration": [
+      "C11",
+      "单线程教学代码；无真实文件系统"
+    ],
+    "files": [
+      {
+        "path": "examples/minifs/minifs.c",
+        "sha256": "269b74b960dff3911d14afc9df8d23a71c7312486171da87bbce870cbcbc22b1"
+      }
+    ]
+  },
+  "rootNodeId": "n-root",
+  "entities": [
+    {
+      "id": "e-open",
+      "kind": "function",
+      "label": "打开入口",
+      "symbol": "minifs_open",
+      "canonicalNodeId": "n-open",
+      "evidenceIds": [
+        "ev-open"
+      ]
+    },
+    {
+      "id": "e-lookup",
+      "kind": "function",
+      "label": "路径查找",
+      "symbol": "lookup_inode",
+      "canonicalNodeId": "n-lookup",
+      "evidenceIds": [
+        "ev-lookup"
+      ]
+    },
+    {
+      "id": "e-allocate",
+      "kind": "function",
+      "label": "文件槽位分配",
+      "symbol": "allocate_file",
+      "canonicalNodeId": "n-allocate",
+      "evidenceIds": [
+        "ev-allocate"
+      ]
+    },
+    {
+      "id": "e-release",
+      "kind": "function",
+      "label": "文件槽位释放",
+      "symbol": "release_file",
+      "canonicalNodeId": "n-release",
+      "evidenceIds": [
+        "ev-release"
+      ]
+    },
+    {
+      "id": "e-backend",
+      "kind": "function",
+      "label": "后端打开",
+      "symbol": "backend_open",
+      "canonicalNodeId": "n-backend-fn",
+      "evidenceIds": [
+        "ev-backend"
+      ]
+    },
+    {
+      "id": "e-ops",
+      "kind": "interface",
+      "label": "文件操作表",
+      "symbol": "struct FileOps / backend_ops",
+      "canonicalNodeId": "n-ops",
+      "evidenceIds": [
+        "ev-types",
+        "ev-ops"
+      ]
+    },
+    {
+      "id": "e-file",
+      "kind": "type",
+      "label": "文件对象",
+      "symbol": "struct File",
+      "canonicalNodeId": "n-file",
+      "evidenceIds": [
+        "ev-types"
+      ]
+    },
+    {
+      "id": "e-inode",
+      "kind": "type",
+      "label": "名称对象",
+      "symbol": "struct Inode / demo_inode",
+      "canonicalNodeId": "n-inode",
+      "evidenceIds": [
+        "ev-types",
+        "ev-storage"
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "n-root",
+      "parentId": null,
+      "kind": "topic",
+      "label": "MiniFS：模块怎样协作",
+      "summary": "打开接口、后端协议与实现、文件槽位和名称空间各司其职，通过调用、接口绑定和共享对象联系。选择任一模块深入；排列顺序不表示执行先后。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "claimStatus": "editorial",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-entry",
+      "parentId": "n-root",
+      "kind": "module",
+      "label": "打开接口",
+      "summary": "面向调用方接收路径与输出指针；协调名称查找、可读检查、槽位和后端，把错误或文件对象交回调用方。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-open"
+      ],
+      "claimStatus": "inferred",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [],
+      "claimReason": "根据 minifs_open 各分支归纳职责，分组属于阅读设计。",
+      "details": {
+        "inputs": [
+          "path 与 struct File **out"
+        ],
+        "outputs": [
+          "成功返回 0 并写入文件指针；失败返回负错误码"
+        ],
+        "invariants": [
+          "后端失败后释放槽位；out 非空时先清空输出"
+        ]
+      }
+    },
+    {
+      "id": "n-path",
+      "parentId": "n-root",
+      "kind": "module",
+      "label": "名称空间",
+      "summary": "教学查找把任意非空路径对应到同一个 demo_inode；Inode 的 readable 字段供打开接口检查。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-types",
+        "ev-storage",
+        "ev-lookup",
+        "ev-check"
+      ],
+      "claimStatus": "source",
+      "order": 3,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-backend",
+      "parentId": "n-root",
+      "kind": "module",
+      "label": "后端协议与实现",
+      "summary": "FileOps 定义 open 接口，backend_ops 固定绑定 backend_open；实现根据模拟错误状态返回失败，或修改共享 File.ready。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-types",
+        "ev-ops",
+        "ev-backend"
+      ],
+      "claimStatus": "source",
+      "order": 1,
+      "importance": "primary",
+      "snippetIds": [],
+      "details": {
+        "inputs": [
+          "struct File *file"
+        ],
+        "outputs": [
+          "负错误码，或 ready = 1 与返回 0"
+        ],
+        "invariants": [
+          "调用目标由分配时绑定的 backend_ops 决定"
+        ]
+      }
+    },
+    {
+      "id": "n-lifetime",
+      "parentId": "n-root",
+      "kind": "module",
+      "label": "文件槽位",
+      "summary": "一个静态 File 保存 inode、ops 和 ready；分配时绑定名称对象与后端接口，失败清理时重置全部字段。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-types",
+        "ev-storage",
+        "ev-allocate",
+        "ev-release"
+      ],
+      "claimStatus": "source",
+      "order": 2,
+      "importance": "primary",
+      "snippetIds": [],
+      "details": {
+        "inputs": [
+          "要绑定的 Inode 指针"
+        ],
+        "outputs": [
+          "空闲槽位的 File 指针，或占用时返回 NULL"
+        ],
+        "invariants": [
+          "只有一个槽位，无并发保护；成功后的关闭接口未实现"
+        ]
+      }
+    },
+    {
+      "id": "n-open",
+      "parentId": "n-entry",
+      "kind": "function",
+      "label": "minifs_open",
+      "summary": "检查输入，查找对象，分配文件并调用后端；后端失败时清理，成功时返回文件。",
+      "entityIds": [
+        "e-open"
+      ],
+      "evidenceIds": [
+        "ev-open"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-open"
+      ],
+      "details": {
+        "inputs": [
+          "路径字符串",
+          "可写的 struct File **out"
+        ],
+        "outputs": [
+          "成功返回 0 并设置 *out",
+          "失败返回负数；有效 out 在执行中先置空"
+        ],
+        "invariants": [
+          "失败的后端调用会释放已经取得的文件槽位",
+          "out == NULL 时不写入输出"
+        ]
+      }
+    },
+    {
+      "id": "n-resolve",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "检查输出指针并查找",
+      "summary": "拒绝空输出指针；将有效输出清零，再查找路径对应对象。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-resolve"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-check",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "检查 readable",
+      "summary": "只允许 readable 为真的演示对象继续。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-check"
+      ],
+      "claimStatus": "source",
+      "order": 1,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-allocate-step",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "取得文件槽位",
+      "summary": "槽位已占用时直接返回；成功时获得绑定操作表的文件对象。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-allocate-step",
+        "ev-allocate"
+      ],
+      "claimStatus": "source",
+      "order": 2,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-dispatch",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "调用操作表接口",
+      "summary": "通过 file->ops->open(file) 分派到本例绑定的实现。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-dispatch",
+        "ev-ops",
+        "ev-allocate"
+      ],
+      "claimStatus": "source",
+      "order": 3,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-cleanup",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "后端失败后释放",
+      "summary": "仅在 rc < 0 时释放已经分配的槽位，再返回原错误码。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-cleanup",
+        "ev-release"
+      ],
+      "claimStatus": "source",
+      "order": 4,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-publish",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "成功交付结果",
+      "summary": "将文件指针写入 *out，再返回 0。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-publish"
+      ],
+      "claimStatus": "source",
+      "order": 5,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-reject",
+      "parentId": "n-open",
+      "kind": "step",
+      "label": "返回失败结果",
+      "summary": "不同检查返回不同负数；后端失败分支在清理后返回 rc。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-open"
+      ],
+      "claimStatus": "source",
+      "order": 6,
+      "importance": "primary",
+      "snippetIds": []
+    },
+    {
+      "id": "n-dispatch-code",
+      "parentId": "n-dispatch",
+      "kind": "code",
+      "label": "分派的源码",
+      "summary": "这是实际的间接调用表达式；绑定依据在关联证据中。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-dispatch",
+        "ev-ops",
+        "ev-allocate"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-dispatch"
+      ]
+    },
+    {
+      "id": "n-lookup",
+      "parentId": "n-path",
+      "kind": "function",
+      "label": "lookup_inode",
+      "summary": "空指针或空字符串返回 NULL；其他输入返回 demo_inode。",
+      "entityIds": [
+        "e-lookup"
+      ],
+      "evidenceIds": [
+        "ev-lookup"
+      ],
+      "claimStatus": "source",
+      "order": 1,
+      "importance": "primary",
+      "snippetIds": [
+        "s-lookup"
+      ]
+    },
+    {
+      "id": "n-open-alias",
+      "parentId": "n-path",
+      "kind": "function",
+      "label": "相关入口：minifs_open",
+      "summary": "同一打开函数的讲解引用；规范位置在“打开接口”，不重复登记实现或关系。",
+      "entityIds": [
+        "e-open"
+      ],
+      "evidenceIds": [],
+      "claimStatus": "editorial",
+      "order": 2,
+      "importance": "supporting",
+      "snippetIds": []
+    },
+    {
+      "id": "n-backend-fn",
+      "parentId": "n-backend",
+      "kind": "function",
+      "label": "backend_open",
+      "summary": "模拟错误条件为真时返回 -5；否则设置 ready 后返回 0。",
+      "entityIds": [
+        "e-backend"
+      ],
+      "evidenceIds": [
+        "ev-backend"
+      ],
+      "claimStatus": "source",
+      "order": 1,
+      "importance": "primary",
+      "snippetIds": [
+        "s-backend"
+      ]
+    },
+    {
+      "id": "n-backend-code",
+      "parentId": "n-backend-fn",
+      "kind": "code",
+      "label": "后端原文",
+      "summary": "保留错误分支和成功状态变化。",
+      "entityIds": [],
+      "evidenceIds": [
+        "ev-backend"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-backend"
+      ]
+    },
+    {
+      "id": "n-allocate",
+      "parentId": "n-lifetime",
+      "kind": "function",
+      "label": "allocate_file",
+      "summary": "拒绝已占用槽位，初始化 inode、ops 与 ready。",
+      "entityIds": [
+        "e-allocate"
+      ],
+      "evidenceIds": [
+        "ev-allocate"
+      ],
+      "claimStatus": "source",
+      "order": 1,
+      "importance": "primary",
+      "snippetIds": [
+        "s-allocate"
+      ]
+    },
+    {
+      "id": "n-release",
+      "parentId": "n-lifetime",
+      "kind": "function",
+      "label": "release_file",
+      "summary": "清空 inode、ops 和 ready，使教学槽位可被重新使用。",
+      "entityIds": [
+        "e-release"
+      ],
+      "evidenceIds": [
+        "ev-release"
+      ],
+      "claimStatus": "source",
+      "order": 2,
+      "importance": "primary",
+      "snippetIds": [
+        "s-release"
+      ]
+    },
+    {
+      "id": "n-ops",
+      "parentId": "n-backend",
+      "kind": "mechanism",
+      "label": "FileOps：对外协议",
+      "summary": "open 接收 File 指针；backend_ops 中的函数指针固定指向 backend_open。",
+      "entityIds": [
+        "e-ops"
+      ],
+      "evidenceIds": [
+        "ev-types",
+        "ev-ops"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-types",
+        "s-ops"
+      ]
+    },
+    {
+      "id": "n-file",
+      "parentId": "n-lifetime",
+      "kind": "mechanism",
+      "label": "File：共享对象",
+      "summary": "File 保存 inode、ops 和 ready；后端修改 ready，释放函数清空全部字段。",
+      "entityIds": [
+        "e-file"
+      ],
+      "evidenceIds": [
+        "ev-types",
+        "ev-backend",
+        "ev-release"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-types"
+      ]
+    },
+    {
+      "id": "n-inode",
+      "parentId": "n-path",
+      "kind": "mechanism",
+      "label": "Inode：可读状态",
+      "summary": "唯一 demo_inode 初始 readable = 1；非空路径查找返回该对象，打开接口读取 readable。",
+      "entityIds": [
+        "e-inode"
+      ],
+      "evidenceIds": [
+        "ev-types",
+        "ev-storage",
+        "ev-lookup",
+        "ev-check"
+      ],
+      "claimStatus": "source",
+      "order": 0,
+      "importance": "primary",
+      "snippetIds": [
+        "s-types",
+        "s-storage"
+      ]
+    }
+  ],
+  "ports": [
+    {
+      "id": "p-resolve",
+      "entityId": "e-open",
+      "label": "查找调用点",
+      "kind": "callsite",
+      "detailNodeId": "n-resolve"
+    },
+    {
+      "id": "p-allocate",
+      "entityId": "e-open",
+      "label": "分配调用点",
+      "kind": "callsite",
+      "detailNodeId": "n-allocate-step"
+    },
+    {
+      "id": "p-dispatch",
+      "entityId": "e-open",
+      "label": "操作表调用点",
+      "kind": "callsite",
+      "detailNodeId": "n-dispatch-code"
+    },
+    {
+      "id": "p-cleanup",
+      "entityId": "e-open",
+      "label": "清理调用点",
+      "kind": "callsite",
+      "detailNodeId": "n-cleanup"
+    },
+    {
+      "id": "p-backend",
+      "entityId": "e-backend",
+      "label": "后端实现",
+      "kind": "interface",
+      "detailNodeId": "n-backend-code"
+    }
+  ],
+  "relations": [
+    {
+      "id": "r-open-lookup",
+      "sourceEntityId": "e-open",
+      "targetEntityId": "e-lookup",
+      "type": "call",
+      "label": "查找路径",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-resolve"
+      ],
+      "condition": "out != NULL",
+      "sourcePortId": "p-resolve"
+    },
+    {
+      "id": "r-open-allocate",
+      "sourceEntityId": "e-open",
+      "targetEntityId": "e-allocate",
+      "type": "call",
+      "label": "分配文件",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-allocate-step"
+      ],
+      "condition": "查找成功且 readable 为真",
+      "sourcePortId": "p-allocate"
+    },
+    {
+      "id": "r-open-dispatch",
+      "sourceEntityId": "e-open",
+      "targetEntityId": "e-backend",
+      "type": "dispatch",
+      "label": "调用本例绑定的 open",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-dispatch",
+        "ev-allocate",
+        "ev-ops"
+      ],
+      "condition": "分配成功；本例 allocate_file 绑定 backend_ops",
+      "sourcePortId": "p-dispatch",
+      "targetPortId": "p-backend"
+    },
+    {
+      "id": "r-open-release",
+      "sourceEntityId": "e-open",
+      "targetEntityId": "e-release",
+      "type": "call",
+      "label": "失败清理",
+      "role": "failure",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-cleanup"
+      ],
+      "condition": "rc < 0",
+      "sourcePortId": "p-cleanup"
+    },
+    {
+      "id": "r-allocate-ops",
+      "sourceEntityId": "e-allocate",
+      "targetEntityId": "e-ops",
+      "type": "dependency",
+      "label": "分配时绑定后端操作表",
+      "role": "supporting",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-allocate",
+        "ev-ops"
+      ],
+      "condition": "槽位空闲时"
+    },
+    {
+      "id": "r-file-ops",
+      "sourceEntityId": "e-file",
+      "targetEntityId": "e-ops",
+      "type": "dependency",
+      "label": "File.ops 引用操作表协议",
+      "role": "supporting",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-types"
+      ]
+    },
+    {
+      "id": "r-backend-file",
+      "sourceEntityId": "e-backend",
+      "targetEntityId": "e-file",
+      "type": "write",
+      "label": "后端写入 File.ready",
+      "role": "supporting",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-backend"
+      ],
+      "condition": "backend_failure 为 0"
+    },
+    {
+      "id": "r-open-inode",
+      "sourceEntityId": "e-open",
+      "targetEntityId": "e-inode",
+      "type": "read",
+      "label": "打开接口读取 readable",
+      "role": "supporting",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-check"
+      ],
+      "condition": "lookup_inode 返回非 NULL"
+    },
+    {
+      "id": "r-file-inode",
+      "sourceEntityId": "e-file",
+      "targetEntityId": "e-inode",
+      "type": "dependency",
+      "label": "File.inode 引用名称对象",
+      "role": "supporting",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "ev-types"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "f-resolve-check",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-resolve",
+      "toNodeId": "n-check",
+      "kind": "next",
+      "label": "out 有效且查找成功",
+      "evidenceIds": [
+        "ev-resolve"
+      ]
+    },
+    {
+      "id": "f-resolve-reject",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-resolve",
+      "toNodeId": "n-reject",
+      "kind": "exception",
+      "label": "out 为空或查找失败",
+      "evidenceIds": [
+        "ev-resolve"
+      ]
+    },
+    {
+      "id": "f-check-allocate",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-check",
+      "toNodeId": "n-allocate-step",
+      "kind": "next",
+      "label": "readable 为真",
+      "evidenceIds": [
+        "ev-check"
+      ]
+    },
+    {
+      "id": "f-check-reject",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-check",
+      "toNodeId": "n-reject",
+      "kind": "exception",
+      "label": "readable 为假",
+      "evidenceIds": [
+        "ev-check"
+      ]
+    },
+    {
+      "id": "f-allocate-dispatch",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-allocate-step",
+      "toNodeId": "n-dispatch",
+      "kind": "next",
+      "label": "取得槽位",
+      "evidenceIds": [
+        "ev-allocate-step"
+      ]
+    },
+    {
+      "id": "f-allocate-reject",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-allocate-step",
+      "toNodeId": "n-reject",
+      "kind": "exception",
+      "label": "没有槽位",
+      "evidenceIds": [
+        "ev-allocate-step"
+      ]
+    },
+    {
+      "id": "f-dispatch-cleanup",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-dispatch",
+      "toNodeId": "n-cleanup",
+      "kind": "branch",
+      "label": "rc < 0",
+      "evidenceIds": [
+        "ev-cleanup"
+      ]
+    },
+    {
+      "id": "f-cleanup-reject",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-cleanup",
+      "toNodeId": "n-reject",
+      "kind": "next",
+      "label": "释放后返回 rc",
+      "evidenceIds": [
+        "ev-cleanup"
+      ]
+    },
+    {
+      "id": "f-dispatch-publish",
+      "ownerNodeId": "n-open",
+      "fromNodeId": "n-dispatch",
+      "toNodeId": "n-publish",
+      "kind": "branch",
+      "label": "rc >= 0",
+      "evidenceIds": [
+        "ev-open"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-open",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 58,
+      "endLine": 79,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-lookup",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 29,
+      "endLine": 34,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-allocate",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 36,
+      "endLine": 44,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-release",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 46,
+      "endLine": 51,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-backend",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 19,
+      "endLine": 25,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-ops",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 27,
+      "endLine": 27,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-types",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 6,
+      "endLine": 13,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-resolve",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 60,
+      "endLine": 66,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-check",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 67,
+      "endLine": 68,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-allocate-step",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 69,
+      "endLine": 71,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-dispatch",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 72,
+      "endLine": 72,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-cleanup",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 73,
+      "endLine": 76,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-publish",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 77,
+      "endLine": 78,
+      "verification": "matched"
+    },
+    {
+      "id": "ev-storage",
+      "snapshotId": "snap-minifs-v1",
+      "path": "examples/minifs/minifs.c",
+      "startLine": 15,
+      "endLine": 17,
+      "verification": "unverified"
+    }
+  ],
+  "snippets": [
+    {
+      "id": "s-open",
+      "evidenceId": "ev-open",
+      "label": "打开入口的核心代码",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 58,
+          "endLine": 62,
+          "text": "int minifs_open(const char *path, struct File **out)\n{\n    if (out == NULL)\n        return -22;\n    *out = NULL;"
+        },
+        {
+          "kind": "omission",
+          "startLine": 63,
+          "endLine": 63,
+          "reason": "省略教学用、无副作用的审计占位调用；其定义已读取。"
+        },
+        {
+          "kind": "source",
+          "startLine": 64,
+          "endLine": 79,
+          "text": "    struct Inode *inode = lookup_inode(path);\n    if (inode == NULL)\n        return -2;\n    if (!inode->readable)\n        return -13;\n    struct File *file = allocate_file(inode);\n    if (file == NULL)\n        return -12;\n    int rc = file->ops->open(file);\n    if (rc < 0) {\n        release_file(file);\n        return rc;\n    }\n    *out = file;\n    return 0;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "输出指针检查",
+        "查找与可读条件",
+        "槽位分配失败",
+        "后端间接调用",
+        "失败释放及返回",
+        "成功写回"
+      ]
+    },
+    {
+      "id": "s-lookup",
+      "evidenceId": "ev-lookup",
+      "label": "教学查找",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 29,
+          "endLine": 34,
+          "text": "static struct Inode *lookup_inode(const char *path)\n{\n    if (path == NULL || path[0] == '\\0')\n        return NULL;\n    return &demo_inode;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "空路径分支",
+        "固定演示 inode"
+      ]
+    },
+    {
+      "id": "s-allocate",
+      "evidenceId": "ev-allocate",
+      "label": "分配槽位",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 36,
+          "endLine": 44,
+          "text": "static struct File *allocate_file(struct Inode *inode)\n{\n    if (file_slot.inode != NULL)\n        return NULL;\n    file_slot.inode = inode;\n    file_slot.ops = &backend_ops;\n    file_slot.ready = 0;\n    return &file_slot;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "占用检测",
+        "操作表绑定"
+      ]
+    },
+    {
+      "id": "s-release",
+      "evidenceId": "ev-release",
+      "label": "失败清理",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 46,
+          "endLine": 51,
+          "text": "static void release_file(struct File *file)\n{\n    file->inode = NULL;\n    file->ops = NULL;\n    file->ready = 0;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "清空全部槽位状态"
+      ]
+    },
+    {
+      "id": "s-backend",
+      "evidenceId": "ev-backend",
+      "label": "后端打开",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 19,
+          "endLine": 25,
+          "text": "static int backend_open(struct File *file)\n{\n    if (backend_failure)\n        return -5;\n    file->ready = 1;\n    return 0;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "模拟失败",
+        "ready 状态变化"
+      ]
+    },
+    {
+      "id": "s-dispatch",
+      "evidenceId": "ev-dispatch",
+      "label": "间接调用点",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 72,
+          "endLine": 72,
+          "text": "    int rc = file->ops->open(file);"
+        }
+      ],
+      "preservedSemantics": [
+        "表达式原文；前置条件由父步骤与函数上下文提供"
+      ]
+    },
+    {
+      "id": "s-types",
+      "evidenceId": "ev-types",
+      "label": "共享类型与接口声明",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 6,
+          "endLine": 13,
+          "text": "struct Inode { int readable; };\nstruct File;\nstruct FileOps { int (*open)(struct File *file); };\nstruct File {\n    struct Inode *inode;\n    const struct FileOps *ops;\n    int ready;\n};"
+        }
+      ],
+      "preservedSemantics": [
+        "字段引用关系",
+        "open 接口签名"
+      ]
+    },
+    {
+      "id": "s-ops",
+      "evidenceId": "ev-ops",
+      "label": "固定的后端操作表",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 27,
+          "endLine": 27,
+          "text": "static const struct FileOps backend_ops = {backend_open};"
+        }
+      ],
+      "preservedSemantics": [
+        "函数指针绑定"
+      ]
+    },
+    {
+      "id": "s-storage",
+      "evidenceId": "ev-storage",
+      "label": "单线程教学状态",
+      "language": "c",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 15,
+          "endLine": 17,
+          "text": "static struct Inode demo_inode = {1};\nstatic struct File file_slot;\nstatic int backend_failure;"
+        }
+      ],
+      "preservedSemantics": [
+        "静态存储",
+        "演示 inode 初始状态"
+      ]
+    }
+  ],
+  "primaryPath": [
+    "n-root",
+    "n-backend",
+    "n-ops",
+    "n-backend-fn",
+    "n-backend-code"
+  ],
+  "coverage": {
+    "completePaths": [
+      "打开接口与查找、槽位分配、后端分派及失败清理的联系",
+      "FileOps 的静态绑定和 File 对接口及 Inode 的引用",
+      "打开接口读取 readable、后端写入 ready 的共享状态联系"
+    ],
+    "partialPaths": [],
+    "excludedPaths": [
+      "真实路径解析和文件系统行为",
+      "成功后的关闭流程",
+      "无副作用审计占位调用的地图节点"
+    ],
+    "openQuestions": [
+      "本例所有状态均为单线程教学状态；真实系统的配置、生命周期和接口边界需另行取证。"
+    ]
+  }
+}

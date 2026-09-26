@@ -1,0 +1,889 @@
+{
+  "schemaVersion": "0.1",
+  "mapId": "json-schema-traverse-1.0.0",
+  "title": "json-schema-traverse · 递归访问与 JSON Pointer",
+  "language": "zh-CN",
+  "scope": {
+    "question": "遍历器如何选择子 Schema、组织前后回调，并生成属性路径？",
+    "audience": "熟悉 JavaScript、初次阅读此依赖的开发者",
+    "inScope": [
+      "1.0.0 默认 CommonJS 入口",
+      "三类递归与关键词表",
+      "pre/post 次序和属性 JSON Pointer 转义"
+    ],
+    "outOfScope": [
+      "$ref 解析",
+      "Schema 合法性验证",
+      "异步回调等待",
+      "循环 Schema 终止保证"
+    ],
+    "assumptions": [
+      "使用有效 opts 与回调参数；不把遍历等同于验证",
+      "保留默认关键词表，不假定支持后续规范的全部新关键词"
+    ],
+    "entryEntityIds": [
+      "traverse"
+    ]
+  },
+  "snapshot": {
+    "id": "snap-bdf277db4e58ac2b",
+    "kind": "content",
+    "dirty": false,
+    "configuration": [
+      "json-schema-traverse@1.0.0 的 CommonJS 默认入口；未执行目标项目的安装、构建或启动脚本",
+      "源文件改名为 index.cjs 以固定 CommonJS 格式，内容逐字节保留"
+    ],
+    "files": [
+      {
+        "path": "examples/json-schema-traverse/source/LICENSE",
+        "sha256": "7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a"
+      },
+      {
+        "path": "examples/json-schema-traverse/source/index.cjs",
+        "sha256": "024191b747afac01b28ff11d744e9f82720bbad5f716163ba5c962eb62aa2350"
+      }
+    ]
+  },
+  "rootNodeId": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "parentId": null,
+      "kind": "topic",
+      "label": "从 Schema 对象到访问路径",
+      "summary": "遍历器按关键词表寻找子 Schema，前序回调先于子层，后序回调在子层返回后执行。它不验证 Schema，也不解析引用。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 0,
+      "importance": "primary"
+    },
+    {
+      "id": "setup",
+      "parentId": "root",
+      "kind": "module",
+      "label": "建立入口与回调",
+      "summary": "兼容旧参数形式，优先 opts.cb，随后进入根递归。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 1,
+      "importance": "primary"
+    },
+    {
+      "id": "traverse",
+      "parentId": "setup",
+      "kind": "function",
+      "label": "traverse(schema, opts, cb)",
+      "summary": "函数型回调作为 pre；对象型回调分别取 pre/post；缺省分支使用空函数。根路径为空字符串。",
+      "entityIds": [
+        "traverse"
+      ],
+      "evidenceIds": [
+        "entry"
+      ],
+      "snippetIds": [
+        "s-entry"
+      ],
+      "claimStatus": "source",
+      "order": 2,
+      "importance": "primary"
+    },
+    {
+      "id": "visit",
+      "parentId": "root",
+      "kind": "mechanism",
+      "label": "按类型和关键词递归",
+      "summary": "每次访问由对象守卫、前序回调、关键词分派和后序回调构成。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 3,
+      "importance": "primary"
+    },
+    {
+      "id": "worker",
+      "parentId": "visit",
+      "kind": "function",
+      "label": "_traverse",
+      "summary": "只访问非空、非数组对象；for-in 遍历键，按数组、属性容器和单值分支递归，子层全部返回后执行 post。",
+      "entityIds": [
+        "worker"
+      ],
+      "evidenceIds": [
+        "worker"
+      ],
+      "snippetIds": [
+        "s-worker"
+      ],
+      "claimStatus": "source",
+      "order": 4,
+      "importance": "primary"
+    },
+    {
+      "id": "pre",
+      "parentId": "worker",
+      "kind": "step",
+      "label": "守卫与 pre",
+      "summary": "非对象或数组 Schema 不触发回调；合格对象先调用 pre，并传入根 Schema、父路径、父关键词及索引。",
+      "entityIds": [],
+      "evidenceIds": [
+        "pre"
+      ],
+      "snippetIds": [
+        "s-pre"
+      ],
+      "claimStatus": "source",
+      "order": 5,
+      "importance": "primary"
+    },
+    {
+      "id": "dispatch",
+      "parentId": "worker",
+      "kind": "step",
+      "label": "为每个关键词选择分支",
+      "summary": "sch 是当前键的值。数组、属性容器、直接关键词的检查顺序会影响是否继续深入。",
+      "entityIds": [],
+      "evidenceIds": [
+        "worker",
+        "rules"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 6,
+      "importance": "primary"
+    },
+    {
+      "id": "array",
+      "parentId": "dispatch",
+      "kind": "step",
+      "label": "数组值：必须命中数组关键词",
+      "summary": "只有 arrayKeywords 中的键才按数组索引递归。即使 allKeys 为真，也不会遍历任意未知数组关键词。",
+      "entityIds": [],
+      "evidenceIds": [
+        "arrays"
+      ],
+      "snippetIds": [
+        "s-arrays"
+      ],
+      "claimStatus": "source",
+      "order": 7,
+      "importance": "primary"
+    },
+    {
+      "id": "props",
+      "parentId": "dispatch",
+      "kind": "step",
+      "label": "属性容器：转义名称再递归",
+      "summary": "properties、$defs 等容器按 prop 遍历。递归前使用 escapeJsonPtr 处理属性名中的 ~ 和 /。",
+      "entityIds": [],
+      "evidenceIds": [
+        "props",
+        "rules"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 8,
+      "importance": "primary"
+    },
+    {
+      "id": "props-code",
+      "parentId": "props",
+      "kind": "code",
+      "label": "查看属性路径的实际构造",
+      "summary": "jsonPtr 保留父路径，再拼接关键词和已转义属性名；rootSchema 沿递归传递。",
+      "entityIds": [],
+      "evidenceIds": [
+        "props"
+      ],
+      "snippetIds": [
+        "s-props"
+      ],
+      "claimStatus": "source",
+      "order": 9,
+      "importance": "primary"
+    },
+    {
+      "id": "single",
+      "parentId": "dispatch",
+      "kind": "step",
+      "label": "直接关键词与 allKeys",
+      "summary": "直接关键词继续递归；allKeys 只为未命中 skipKeywords 的非数组值开放单值分支。布尔值仍被下次对象守卫跳过。",
+      "entityIds": [],
+      "evidenceIds": [
+        "single",
+        "pre"
+      ],
+      "snippetIds": [
+        "s-single"
+      ],
+      "claimStatus": "source",
+      "order": 10,
+      "importance": "primary"
+    },
+    {
+      "id": "post",
+      "parentId": "worker",
+      "kind": "step",
+      "label": "所有子层返回后 post",
+      "summary": "post 在关键词循环结束后执行。函数没有 try/finally；pre、子层或属性访问抛错时，不保证当前 post 会运行。",
+      "entityIds": [],
+      "evidenceIds": [
+        "post",
+        "worker"
+      ],
+      "snippetIds": [
+        "s-post"
+      ],
+      "claimStatus": "source",
+      "order": 11,
+      "importance": "primary"
+    },
+    {
+      "id": "paths",
+      "parentId": "root",
+      "kind": "module",
+      "label": "规则、路径与边界",
+      "summary": "关键词表决定范围；路径转义只显式用于属性容器的 prop 名称。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 12,
+      "importance": "primary"
+    },
+    {
+      "id": "escape",
+      "parentId": "paths",
+      "kind": "function",
+      "label": "escapeJsonPtr(str)",
+      "summary": "先把 ~ 变为 ~0，再把 / 变为 ~1，避免把新引入的转义符再次修改。",
+      "entityIds": [
+        "escape"
+      ],
+      "evidenceIds": [
+        "escape"
+      ],
+      "snippetIds": [
+        "s-escape"
+      ],
+      "claimStatus": "source",
+      "order": 13,
+      "importance": "primary"
+    },
+    {
+      "id": "rules",
+      "parentId": "paths",
+      "kind": "mechanism",
+      "label": "四张关键词表",
+      "summary": "keywords、arrayKeywords、propsKeywords、skipKeywords 决定是否以及怎样深入。default、enum、const 等数据关键词不因 allKeys 而成为子 Schema。",
+      "entityIds": [],
+      "evidenceIds": [
+        "rules"
+      ],
+      "snippetIds": [
+        "s-rules"
+      ],
+      "claimStatus": "source",
+      "order": 14,
+      "importance": "primary"
+    },
+    {
+      "id": "callback-pre",
+      "parentId": "setup",
+      "kind": "boundary",
+      "label": "调用方 pre 回调",
+      "summary": "具体函数由 cb 或 opts.cb 决定；此图只给出绑定与调用位置，业务回调保留未知。",
+      "entityIds": [
+        "callback-pre"
+      ],
+      "evidenceIds": [
+        "entry"
+      ],
+      "snippetIds": [
+        "s-entry"
+      ],
+      "claimStatus": "source",
+      "order": 15,
+      "importance": "primary"
+    },
+    {
+      "id": "callback-post",
+      "parentId": "setup",
+      "kind": "boundary",
+      "label": "调用方 post 回调",
+      "summary": "具体函数由 cb.post 决定或回退空函数；此图不虚构其内部实现。",
+      "entityIds": [
+        "callback-post"
+      ],
+      "evidenceIds": [
+        "entry"
+      ],
+      "snippetIds": [
+        "s-entry"
+      ],
+      "claimStatus": "source",
+      "order": 16,
+      "importance": "primary"
+    },
+    {
+      "id": "limits",
+      "parentId": "paths",
+      "kind": "boundary",
+      "label": "本图不扩大的保证",
+      "summary": "for-in 也可能访问可枚举继承键；遍历器没有循环缓存、$ref 解析或 await。JSON Schema 布尔节点不会进入回调。",
+      "entityIds": [],
+      "evidenceIds": [
+        "worker",
+        "entry"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 17,
+      "importance": "primary"
+    },
+    {
+      "id": "license",
+      "parentId": "root",
+      "kind": "boundary",
+      "label": "源码许可与来源",
+      "summary": "json-schema-traverse@1.0.0；版权归 Evgeny Poberezkin，MIT License。此许可文本随单文件 HTML 内嵌保留。",
+      "entityIds": [],
+      "evidenceIds": [
+        "license"
+      ],
+      "snippetIds": [
+        "s-license"
+      ],
+      "claimStatus": "source",
+      "order": 18,
+      "importance": "primary"
+    }
+  ],
+  "entities": [
+    {
+      "id": "traverse",
+      "kind": "function",
+      "label": "traverse(schema, opts, cb)",
+      "symbol": "traverse(schema, opts, cb)",
+      "canonicalNodeId": "traverse",
+      "evidenceIds": [
+        "entry"
+      ]
+    },
+    {
+      "id": "worker",
+      "kind": "function",
+      "label": "_traverse",
+      "symbol": "_traverse",
+      "canonicalNodeId": "worker",
+      "evidenceIds": [
+        "worker"
+      ]
+    },
+    {
+      "id": "escape",
+      "kind": "function",
+      "label": "escapeJsonPtr(str)",
+      "symbol": "escapeJsonPtr(str)",
+      "canonicalNodeId": "escape",
+      "evidenceIds": [
+        "escape"
+      ]
+    },
+    {
+      "id": "callback-pre",
+      "kind": "external",
+      "label": "调用方 pre 回调",
+      "symbol": "调用方 pre 回调",
+      "canonicalNodeId": "callback-pre",
+      "evidenceIds": [
+        "entry"
+      ]
+    },
+    {
+      "id": "callback-post",
+      "kind": "external",
+      "label": "调用方 post 回调",
+      "symbol": "调用方 post 回调",
+      "canonicalNodeId": "callback-post",
+      "evidenceIds": [
+        "entry"
+      ]
+    }
+  ],
+  "ports": [
+    {
+      "id": "array-site",
+      "entityId": "worker",
+      "label": "array 调用点",
+      "kind": "callsite",
+      "detailNodeId": "array"
+    },
+    {
+      "id": "props-site",
+      "entityId": "worker",
+      "label": "props 调用点",
+      "kind": "callsite",
+      "detailNodeId": "props"
+    },
+    {
+      "id": "single-site",
+      "entityId": "worker",
+      "label": "single 调用点",
+      "kind": "callsite",
+      "detailNodeId": "single"
+    }
+  ],
+  "relations": [
+    {
+      "id": "entry-worker",
+      "sourceEntityId": "traverse",
+      "targetEntityId": "worker",
+      "type": "call",
+      "label": "从根开始递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "entry"
+      ]
+    },
+    {
+      "id": "array-recursion",
+      "sourceEntityId": "worker",
+      "targetEntityId": "worker",
+      "type": "call",
+      "label": "数组元素递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "arrays"
+      ],
+      "condition": "值为数组且关键词属于 arrayKeywords",
+      "sourcePortId": "array-site"
+    },
+    {
+      "id": "props-recursion",
+      "sourceEntityId": "worker",
+      "targetEntityId": "worker",
+      "type": "call",
+      "label": "属性容器递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "props"
+      ],
+      "condition": "关键词属于 propsKeywords，容器值为真值对象",
+      "sourcePortId": "props-site"
+    },
+    {
+      "id": "single-recursion",
+      "sourceEntityId": "worker",
+      "targetEntityId": "worker",
+      "type": "call",
+      "label": "单个子 Schema 递归",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "single"
+      ],
+      "condition": "直接关键词，或 allKeys 且未列入 skipKeywords；前面分支未命中",
+      "sourcePortId": "single-site"
+    },
+    {
+      "id": "escape-call",
+      "sourceEntityId": "worker",
+      "targetEntityId": "escape",
+      "type": "call",
+      "label": "属性名编码",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "props",
+        "escape"
+      ],
+      "condition": "处理属性容器的 prop"
+    },
+    {
+      "id": "pre-call",
+      "sourceEntityId": "worker",
+      "targetEntityId": "callback-pre",
+      "type": "dispatch",
+      "label": "前序回调",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "pre",
+        "entry"
+      ],
+      "condition": "当前 Schema 是非空、非数组对象",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    },
+    {
+      "id": "post-call",
+      "sourceEntityId": "worker",
+      "targetEntityId": "callback-post",
+      "type": "dispatch",
+      "label": "后序回调",
+      "role": "main",
+      "claimStatus": "unknown",
+      "evidenceIds": [
+        "post",
+        "entry"
+      ],
+      "condition": "所有前序、子层和循环操作正常返回",
+      "claimReason": "具体回调由运行时输入提供；本图没有绑定到某个业务函数。"
+    }
+  ],
+  "flows": [
+    {
+      "id": "pre-to-dispatch",
+      "ownerNodeId": "worker",
+      "fromNodeId": "pre",
+      "toNodeId": "dispatch",
+      "kind": "branch",
+      "label": "对象守卫通过且 pre 正常返回",
+      "evidenceIds": [
+        "worker"
+      ]
+    },
+    {
+      "id": "dispatch-array",
+      "ownerNodeId": "worker",
+      "fromNodeId": "dispatch",
+      "toNodeId": "array",
+      "kind": "branch",
+      "label": "当前值是数组",
+      "evidenceIds": [
+        "worker"
+      ]
+    },
+    {
+      "id": "dispatch-props",
+      "ownerNodeId": "worker",
+      "fromNodeId": "dispatch",
+      "toNodeId": "props",
+      "kind": "branch",
+      "label": "非数组值且命中属性容器关键词",
+      "evidenceIds": [
+        "worker"
+      ]
+    },
+    {
+      "id": "dispatch-single",
+      "ownerNodeId": "worker",
+      "fromNodeId": "dispatch",
+      "toNodeId": "single",
+      "kind": "branch",
+      "label": "前面分支未命中，继续检查直接关键词或 allKeys",
+      "evidenceIds": [
+        "worker"
+      ]
+    },
+    {
+      "id": "dispatch-post",
+      "ownerNodeId": "worker",
+      "fromNodeId": "dispatch",
+      "toNodeId": "post",
+      "kind": "branch",
+      "label": "关键词循环及所有递归调用正常结束",
+      "evidenceIds": [
+        "worker"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "entry",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 3,
+      "endLine": 15,
+      "verification": "unverified",
+      "note": "参数兼容、前后回调绑定与根调用"
+    },
+    {
+      "id": "rules",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 18,
+      "endLine": 64,
+      "verification": "unverified",
+      "note": "直接、数组、属性容器与跳过的关键词表"
+    },
+    {
+      "id": "worker",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 67,
+      "endLine": 88,
+      "verification": "unverified",
+      "note": "递归遍历的完整实现"
+    },
+    {
+      "id": "pre",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 68,
+      "endLine": 70,
+      "verification": "unverified",
+      "note": "对象守卫与前序回调"
+    },
+    {
+      "id": "arrays",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 72,
+      "endLine": 76,
+      "verification": "unverified",
+      "note": "数组关键词按索引递归"
+    },
+    {
+      "id": "props",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 77,
+      "endLine": 81,
+      "verification": "unverified",
+      "note": "属性容器按名称递归并转义属性名"
+    },
+    {
+      "id": "single",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 82,
+      "endLine": 84,
+      "verification": "unverified",
+      "note": "直接关键词或 allKeys 的单值递归"
+    },
+    {
+      "id": "post",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 85,
+      "endLine": 88,
+      "verification": "unverified",
+      "note": "子层遍历完毕后的回调"
+    },
+    {
+      "id": "escape",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/index.cjs",
+      "startLine": 91,
+      "endLine": 93,
+      "verification": "unverified",
+      "note": "先转义 ~，再转义 /"
+    },
+    {
+      "id": "license",
+      "snapshotId": "snap-bdf277db4e58ac2b",
+      "path": "examples/json-schema-traverse/source/LICENSE",
+      "startLine": 1,
+      "endLine": 21,
+      "verification": "unverified",
+      "note": "原项目完整 MIT 许可与署名"
+    }
+  ],
+  "snippets": [
+    {
+      "id": "s-entry",
+      "evidenceId": "entry",
+      "label": "参数兼容、前后回调绑定与根调用",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 3,
+          "endLine": 15,
+          "text": "var traverse = module.exports = function (schema, opts, cb) {\n  // Legacy support for v0.3.1 and earlier.\n  if (typeof opts == 'function') {\n    cb = opts;\n    opts = {};\n  }\n\n  cb = opts.cb || cb;\n  var pre = (typeof cb == 'function') ? cb : cb.pre || function() {};\n  var post = cb.post || function() {};\n\n  _traverse(opts, pre, post, schema, '', schema);\n};"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-rules",
+      "evidenceId": "rules",
+      "label": "直接、数组、属性容器与跳过的关键词表",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 18,
+          "endLine": 64,
+          "text": "traverse.keywords = {\n  additionalItems: true,\n  items: true,\n  contains: true,\n  additionalProperties: true,\n  propertyNames: true,\n  not: true,\n  if: true,\n  then: true,\n  else: true\n};\n\ntraverse.arrayKeywords = {\n  items: true,\n  allOf: true,\n  anyOf: true,\n  oneOf: true\n};\n\ntraverse.propsKeywords = {\n  $defs: true,\n  definitions: true,\n  properties: true,\n  patternProperties: true,\n  dependencies: true\n};\n\ntraverse.skipKeywords = {\n  default: true,\n  enum: true,\n  const: true,\n  required: true,\n  maximum: true,\n  minimum: true,\n  exclusiveMaximum: true,\n  exclusiveMinimum: true,\n  multipleOf: true,\n  maxLength: true,\n  minLength: true,\n  pattern: true,\n  format: true,\n  maxItems: true,\n  minItems: true,\n  uniqueItems: true,\n  maxProperties: true,\n  minProperties: true\n};"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-worker",
+      "evidenceId": "worker",
+      "label": "递归遍历的完整实现",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 67,
+          "endLine": 88,
+          "text": "function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {\n  if (schema && typeof schema == 'object' && !Array.isArray(schema)) {\n    pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);\n    for (var key in schema) {\n      var sch = schema[key];\n      if (Array.isArray(sch)) {\n        if (key in traverse.arrayKeywords) {\n          for (var i=0; i<sch.length; i++)\n            _traverse(opts, pre, post, sch[i], jsonPtr + '/' + key + '/' + i, rootSchema, jsonPtr, key, schema, i);\n        }\n      } else if (key in traverse.propsKeywords) {\n        if (sch && typeof sch == 'object') {\n          for (var prop in sch)\n            _traverse(opts, pre, post, sch[prop], jsonPtr + '/' + key + '/' + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);\n        }\n      } else if (key in traverse.keywords || (opts.allKeys && !(key in traverse.skipKeywords))) {\n        _traverse(opts, pre, post, sch, jsonPtr + '/' + key, rootSchema, jsonPtr, key, schema);\n      }\n    }\n    post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);\n  }\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-pre",
+      "evidenceId": "pre",
+      "label": "对象守卫与前序回调",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 68,
+          "endLine": 70,
+          "text": "  if (schema && typeof schema == 'object' && !Array.isArray(schema)) {\n    pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);\n    for (var key in schema) {"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-arrays",
+      "evidenceId": "arrays",
+      "label": "数组关键词按索引递归",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 72,
+          "endLine": 76,
+          "text": "      if (Array.isArray(sch)) {\n        if (key in traverse.arrayKeywords) {\n          for (var i=0; i<sch.length; i++)\n            _traverse(opts, pre, post, sch[i], jsonPtr + '/' + key + '/' + i, rootSchema, jsonPtr, key, schema, i);\n        }"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-props",
+      "evidenceId": "props",
+      "label": "属性容器按名称递归并转义属性名",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 77,
+          "endLine": 81,
+          "text": "      } else if (key in traverse.propsKeywords) {\n        if (sch && typeof sch == 'object') {\n          for (var prop in sch)\n            _traverse(opts, pre, post, sch[prop], jsonPtr + '/' + key + '/' + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);\n        }"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-single",
+      "evidenceId": "single",
+      "label": "直接关键词或 allKeys 的单值递归",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 82,
+          "endLine": 84,
+          "text": "      } else if (key in traverse.keywords || (opts.allKeys && !(key in traverse.skipKeywords))) {\n        _traverse(opts, pre, post, sch, jsonPtr + '/' + key, rootSchema, jsonPtr, key, schema);\n      }"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-post",
+      "evidenceId": "post",
+      "label": "子层遍历完毕后的回调",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 85,
+          "endLine": 88,
+          "text": "    }\n    post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);\n  }\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-escape",
+      "evidenceId": "escape",
+      "label": "先转义 ~，再转义 /",
+      "language": "javascript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 91,
+          "endLine": 93,
+          "text": "function escapeJsonPtr(str) {\n  return str.replace(/~/g, '~0').replace(/\\//g, '~1');\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    },
+    {
+      "id": "s-license",
+      "evidenceId": "license",
+      "label": "原项目完整 MIT 许可与署名",
+      "language": "text",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 1,
+          "endLine": 21,
+          "text": "MIT License\n\nCopyright (c) 2017 Evgeny Poberezkin\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该区间的条件、返回、递归与回调；未拼接成完整函数。"
+      ]
+    }
+  ],
+  "primaryPath": [
+    "root",
+    "visit",
+    "worker",
+    "dispatch",
+    "props",
+    "props-code"
+  ],
+  "coverage": {
+    "completePaths": [
+      "入口参数与回调绑定",
+      "三类递归调用与 JSON Pointer 属性转义",
+      "前后回调顺序、数据关键词与布尔 Schema 边界"
+    ],
+    "partialPaths": [
+      "回调内部行为未绑定到业务实现；异常仅说明传播边界"
+    ],
+    "excludedPaths": [
+      "$ref 解析",
+      "Schema 合法性验证",
+      "异步回调等待",
+      "循环 Schema 终止保证"
+    ],
+    "openQuestions": [
+      "地图尚未完成真实浏览器目视检查和独立读者试用"
+    ]
+  }
+}

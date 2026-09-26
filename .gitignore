@@ -1,0 +1,9 @@
+node_modules/
+dist/
+artifacts/
+test-results/
+playwright-report/
+docs/diagrams/delivery-receipt.json
+docs/diagrams/*.visual-check.json
+.DS_Store
+*.tgz

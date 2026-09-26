@@ -1,0 +1,9 @@
+{
+  "package": "json-schema-traverse",
+  "version": "1.0.0",
+  "license": "MIT",
+  "originalFile": "index.js",
+  "localFile": "index.cjs",
+  "origin": "本仓库 package-lock.json 固定的 npm 依赖；index.cjs 与已安装 index.js 逐字节相同",
+  "repository": "git+https://github.com/epoberezkin/json-schema-traverse.git"
+}

@@ -1,0 +1,926 @@
+{
+  "schemaVersion": "0.1",
+  "mapId": "codemap-build-20260925",
+  "title": "CodeMap · 从已验证地图到离线 HTML",
+  "language": "zh-CN",
+  "scope": {
+    "question": "build 如何检查输入并交付离线 HTML，哪些失败发生在替换旧文件之前？",
+    "audience": "熟悉 TypeScript、尚不熟悉 CodeMap 的开发者",
+    "inScope": [
+      "build 子命令与异常出口",
+      "结构、源码、收据校验的职责",
+      "内嵌转义、候选检查和单文件替换"
+    ],
+    "outOfScope": [
+      "完整参数解析器",
+      "布局算法内部",
+      "浏览器阅读器",
+      "文件系统崩溃恢复",
+      "全部攻击面审计"
+    ],
+    "assumptions": [
+      "源目录为当前工作区；没有提交历史时使用内容快照",
+      "源码比对不等于解释正确；收据指纹不是签名"
+    ],
+    "entryEntityIds": [
+      "main"
+    ]
+  },
+  "snapshot": {
+    "id": "snap-a1e41fe7a3425b7b",
+    "kind": "content",
+    "dirty": false,
+    "configuration": [
+      "Node.js 22+；本地图只覆盖 build 子命令与直接调用的校验、打包函数"
+    ],
+    "files": [
+      {
+        "path": "src/cli.ts",
+        "sha256": "7a15545e1f5ed6613f8e5d37a111bb799ca4557d2d199ecb8fcc56485d0f99da"
+      },
+      {
+        "path": "src/packager.ts",
+        "sha256": "7bb54eacedcbd6bef78dff30135bfc3efcf0572f8d916cf2faaad4571ee61faf"
+      },
+      {
+        "path": "src/validator.ts",
+        "sha256": "33eab08ea3b92ede9c253c75194bf98e7202f4c112d422891ec0c47a318b204a"
+      }
+    ]
+  },
+  "rootNodeId": "root",
+  "nodes": [
+    {
+      "id": "root",
+      "parentId": null,
+      "kind": "topic",
+      "label": "CodeMap 如何交付离线 HTML",
+      "summary": "从 build 子命令追踪输入验证、候选 HTML、完整性检查和磁盘替换。解释读取到的源码，不宣称验证收据是防伪签名。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 0,
+      "importance": "primary"
+    },
+    {
+      "id": "entry",
+      "parentId": "root",
+      "kind": "module",
+      "label": "编排与错误出口",
+      "summary": "CLI 控制各步骤顺序，检查失败进入统一异常出口。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 1,
+      "importance": "primary"
+    },
+    {
+      "id": "validation",
+      "parentId": "root",
+      "kind": "module",
+      "label": "输入与证据约束",
+      "summary": "结构检查和源码比对产生收据；build 要求收据与当前地图相符。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 2,
+      "importance": "primary"
+    },
+    {
+      "id": "candidate",
+      "parentId": "root",
+      "kind": "mechanism",
+      "label": "构造离线候选",
+      "summary": "先生成内存中的 HTML 和内容指纹，不在构建函数里覆盖磁盘文件。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 3,
+      "importance": "primary"
+    },
+    {
+      "id": "delivery",
+      "parentId": "root",
+      "kind": "module",
+      "label": "检查与单文件替换",
+      "summary": "CLI 检查候选后先写收据再写 HTML；这两个文件不是一个事务。",
+      "entityIds": [],
+      "evidenceIds": [],
+      "snippetIds": [],
+      "claimStatus": "editorial",
+      "order": 4,
+      "importance": "primary"
+    },
+    {
+      "id": "main",
+      "parentId": "entry",
+      "kind": "function",
+      "label": "main / build 分支",
+      "summary": "读取地图和已有收据；传 --repo 才再次读取源码。buildHTML 与 inspectHTML 完成后顺序写入两份产物。",
+      "entityIds": [
+        "main"
+      ],
+      "evidenceIds": [
+        "cli-build"
+      ],
+      "snippetIds": [
+        "s-cli-build"
+      ],
+      "claimStatus": "source",
+      "order": 5,
+      "importance": "primary"
+    },
+    {
+      "id": "failure",
+      "parentId": "main",
+      "kind": "step",
+      "label": "失败返回可解释诊断",
+      "summary": "异常携带稳定错误码与提示；校验或候选构建在写入前失败时，旧 HTML 不被覆盖。磁盘故障另有 I/O 边界。",
+      "entityIds": [],
+      "evidenceIds": [
+        "cli-error",
+        "cli-build"
+      ],
+      "snippetIds": [
+        "s-cli-error"
+      ],
+      "claimStatus": "source",
+      "order": 6,
+      "importance": "primary"
+    },
+    {
+      "id": "validateMap",
+      "parentId": "validation",
+      "kind": "function",
+      "label": "validateMap",
+      "summary": "读取记录的源码目录，检查提交状态、文件指纹、证据行范围和片段原文；不会因输入自报 matched 而跳过读取。",
+      "entityIds": [
+        "validateMap"
+      ],
+      "evidenceIds": [
+        "source"
+      ],
+      "snippetIds": [
+        "s-source"
+      ],
+      "claimStatus": "source",
+      "order": 7,
+      "importance": "primary"
+    },
+    {
+      "id": "validateStructure",
+      "parentId": "validation",
+      "kind": "function",
+      "label": "validateStructure",
+      "summary": "验证预算、Schema 和跨对象不变量；不能证明自然语言解释正确。",
+      "entityIds": [
+        "validateStructure"
+      ],
+      "evidenceIds": [
+        "structure"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 8,
+      "importance": "primary"
+    },
+    {
+      "id": "validateReceipt",
+      "parentId": "validation",
+      "kind": "function",
+      "label": "validateReceipt",
+      "summary": "收据必须成功且匹配编译器、地图指纹、快照、全部证据和文件集合。它是匹配检查，不是可信第三方签名。",
+      "entityIds": [
+        "validateReceipt"
+      ],
+      "evidenceIds": [
+        "receipt"
+      ],
+      "snippetIds": [
+        "s-receipt"
+      ],
+      "claimStatus": "source",
+      "order": 9,
+      "importance": "primary"
+    },
+    {
+      "id": "buildHTML",
+      "parentId": "candidate",
+      "kind": "function",
+      "label": "buildHTML",
+      "summary": "检查输入后构造场景和离线 HTML，校验 5MB 上限，返回构建清单及字节指纹。",
+      "entityIds": [
+        "buildHTML"
+      ],
+      "evidenceIds": [
+        "build"
+      ],
+      "snippetIds": [
+        "s-build"
+      ],
+      "claimStatus": "source",
+      "order": 10,
+      "importance": "primary"
+    },
+    {
+      "id": "check-input",
+      "parentId": "buildHTML",
+      "kind": "step",
+      "label": "先拒绝无效输入",
+      "summary": "结构诊断、收据不符或运行时终止标签均会在组装候选前抛错。",
+      "entityIds": [],
+      "evidenceIds": [
+        "structure-step"
+      ],
+      "snippetIds": [
+        "s-structure-step"
+      ],
+      "claimStatus": "source",
+      "order": 11,
+      "importance": "primary"
+    },
+    {
+      "id": "embed",
+      "parentId": "buildHTML",
+      "kind": "step",
+      "label": "内嵌数据与运行时",
+      "summary": "计算确定性布局，把地图、验证收据、CSS 和 JavaScript 内嵌；输入文本经过转义。",
+      "entityIds": [],
+      "evidenceIds": [
+        "payload-step",
+        "safe-json"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 12,
+      "importance": "primary"
+    },
+    {
+      "id": "source-code",
+      "parentId": "embed",
+      "kind": "code",
+      "label": "查看实际内嵌与转义代码",
+      "summary": "这里显示原始 TypeScript。转义会处理小于号、脚本终止序列及 Unicode 分隔字符。",
+      "entityIds": [],
+      "evidenceIds": [
+        "safe-json",
+        "payload-step"
+      ],
+      "snippetIds": [
+        "s-safe-json",
+        "s-payload-step"
+      ],
+      "claimStatus": "source",
+      "order": 13,
+      "importance": "primary"
+    },
+    {
+      "id": "budget",
+      "parentId": "buildHTML",
+      "kind": "step",
+      "label": "检查大小并返回候选",
+      "summary": "HTML 超过预算抛错；成功返回 HTML、构建收据和 payload，仍未写入磁盘。",
+      "entityIds": [],
+      "evidenceIds": [
+        "budget-step"
+      ],
+      "snippetIds": [
+        "s-budget-step"
+      ],
+      "claimStatus": "source",
+      "order": 14,
+      "importance": "primary"
+    },
+    {
+      "id": "inspectHTML",
+      "parentId": "delivery",
+      "kind": "function",
+      "label": "inspectHTML",
+      "summary": "重新读取内嵌区块，比对内容指纹，再核验地图、收据和确定性布局。可检测内容不匹配，不证明发布者身份。",
+      "entityIds": [
+        "inspectHTML"
+      ],
+      "evidenceIds": [
+        "inspect"
+      ],
+      "snippetIds": [
+        "s-inspect"
+      ],
+      "claimStatus": "source",
+      "order": 15,
+      "importance": "primary"
+    },
+    {
+      "id": "writeAtomic",
+      "parentId": "delivery",
+      "kind": "function",
+      "label": "writeAtomic",
+      "summary": "先写同目录唯一临时文件，再 rename 到目标；finally 尝试删除临时路径。单次调用只替换一个文件。",
+      "entityIds": [
+        "writeAtomic"
+      ],
+      "evidenceIds": [
+        "write"
+      ],
+      "snippetIds": [
+        "s-write"
+      ],
+      "claimStatus": "source",
+      "order": 16,
+      "importance": "primary"
+    },
+    {
+      "id": "io-boundary",
+      "parentId": "delivery",
+      "kind": "boundary",
+      "label": "磁盘事务边界",
+      "summary": "CLI 先替换 build-receipt.json，再替换 map.html。第二次写入失败可能留下新收据与旧 HTML；应 inspect 旧 HTML 判断其实际版本。这里没有多文件事务或断电持久性保证。",
+      "entityIds": [],
+      "evidenceIds": [
+        "cli-build",
+        "write"
+      ],
+      "snippetIds": [],
+      "claimStatus": "source",
+      "order": 17,
+      "importance": "primary"
+    }
+  ],
+  "entities": [
+    {
+      "id": "main",
+      "kind": "function",
+      "label": "main / build 分支",
+      "symbol": "main / build 分支",
+      "canonicalNodeId": "main",
+      "evidenceIds": [
+        "cli-build"
+      ]
+    },
+    {
+      "id": "validateMap",
+      "kind": "function",
+      "label": "validateMap",
+      "symbol": "validateMap",
+      "canonicalNodeId": "validateMap",
+      "evidenceIds": [
+        "source"
+      ]
+    },
+    {
+      "id": "validateStructure",
+      "kind": "function",
+      "label": "validateStructure",
+      "symbol": "validateStructure",
+      "canonicalNodeId": "validateStructure",
+      "evidenceIds": [
+        "structure"
+      ]
+    },
+    {
+      "id": "validateReceipt",
+      "kind": "function",
+      "label": "validateReceipt",
+      "symbol": "validateReceipt",
+      "canonicalNodeId": "validateReceipt",
+      "evidenceIds": [
+        "receipt"
+      ]
+    },
+    {
+      "id": "buildHTML",
+      "kind": "function",
+      "label": "buildHTML",
+      "symbol": "buildHTML",
+      "canonicalNodeId": "buildHTML",
+      "evidenceIds": [
+        "build"
+      ]
+    },
+    {
+      "id": "inspectHTML",
+      "kind": "function",
+      "label": "inspectHTML",
+      "symbol": "inspectHTML",
+      "canonicalNodeId": "inspectHTML",
+      "evidenceIds": [
+        "inspect"
+      ]
+    },
+    {
+      "id": "writeAtomic",
+      "kind": "function",
+      "label": "writeAtomic",
+      "symbol": "writeAtomic",
+      "canonicalNodeId": "writeAtomic",
+      "evidenceIds": [
+        "write"
+      ]
+    }
+  ],
+  "ports": [],
+  "relations": [
+    {
+      "id": "main-source",
+      "sourceEntityId": "main",
+      "targetEntityId": "validateMap",
+      "type": "call",
+      "label": "可选重读源码",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "cli-build",
+        "cli-bindings"
+      ],
+      "condition": "仅当提供 --repo"
+    },
+    {
+      "id": "main-build",
+      "sourceEntityId": "main",
+      "targetEntityId": "buildHTML",
+      "type": "call",
+      "label": "构建内存候选",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "cli-build",
+        "cli-bindings"
+      ]
+    },
+    {
+      "id": "main-inspect",
+      "sourceEntityId": "main",
+      "targetEntityId": "inspectHTML",
+      "type": "call",
+      "label": "写入前检查候选",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "cli-build",
+        "cli-bindings"
+      ]
+    },
+    {
+      "id": "main-receipt-write",
+      "sourceEntityId": "main",
+      "targetEntityId": "writeAtomic",
+      "type": "call",
+      "label": "先写构建收据",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "cli-build",
+        "cli-bindings"
+      ]
+    },
+    {
+      "id": "main-html-write",
+      "sourceEntityId": "main",
+      "targetEntityId": "writeAtomic",
+      "type": "call",
+      "label": "随后写 HTML",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "cli-build",
+        "cli-bindings"
+      ],
+      "condition": "前面的检查和收据写入均成功"
+    },
+    {
+      "id": "build-structure",
+      "sourceEntityId": "buildHTML",
+      "targetEntityId": "validateStructure",
+      "type": "call",
+      "label": "重新验证结构",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "build",
+        "pack-bindings"
+      ]
+    },
+    {
+      "id": "build-receipt",
+      "sourceEntityId": "buildHTML",
+      "targetEntityId": "validateReceipt",
+      "type": "call",
+      "label": "绑定地图与已有收据",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "build",
+        "pack-bindings"
+      ]
+    },
+    {
+      "id": "inspect-structure",
+      "sourceEntityId": "inspectHTML",
+      "targetEntityId": "validateStructure",
+      "type": "call",
+      "label": "检查内嵌地图结构",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "inspect",
+        "pack-bindings"
+      ]
+    },
+    {
+      "id": "inspect-receipt",
+      "sourceEntityId": "inspectHTML",
+      "targetEntityId": "validateReceipt",
+      "type": "call",
+      "label": "检查内嵌验证收据",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "inspect",
+        "pack-bindings"
+      ]
+    },
+    {
+      "id": "source-structure",
+      "sourceEntityId": "validateMap",
+      "targetEntityId": "validateStructure",
+      "type": "call",
+      "label": "源码读取前先检查结构",
+      "role": "main",
+      "claimStatus": "source",
+      "evidenceIds": [
+        "source",
+        "structure"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "checked-to-embed",
+      "ownerNodeId": "buildHTML",
+      "fromNodeId": "check-input",
+      "toNodeId": "embed",
+      "kind": "next",
+      "label": "检查通过",
+      "evidenceIds": [
+        "build"
+      ]
+    },
+    {
+      "id": "embed-to-budget",
+      "ownerNodeId": "buildHTML",
+      "fromNodeId": "embed",
+      "toNodeId": "budget",
+      "kind": "next",
+      "label": "完成候选组装",
+      "evidenceIds": [
+        "build"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "cli-build",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/cli.ts",
+      "startLine": 72,
+      "endLine": 84,
+      "verification": "unverified",
+      "note": "build 分支：参数、可选源码复核、候选构建、完整性检查、两次单文件写入"
+    },
+    {
+      "id": "cli-error",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/cli.ts",
+      "startLine": 88,
+      "endLine": 93,
+      "verification": "unverified",
+      "note": "异常转换为诊断和退出码"
+    },
+    {
+      "id": "cli-bindings",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/cli.ts",
+      "startLine": 1,
+      "endLine": 8,
+      "verification": "unverified",
+      "note": "CLI 的静态 import 绑定"
+    },
+    {
+      "id": "pack-bindings",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 1,
+      "endLine": 7,
+      "verification": "unverified",
+      "note": "打包器的静态 import 绑定"
+    },
+    {
+      "id": "build",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 15,
+      "endLine": 29,
+      "verification": "unverified",
+      "note": "构建候选，不写磁盘"
+    },
+    {
+      "id": "safe-json",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 9,
+      "endLine": 10,
+      "verification": "unverified",
+      "note": "JSON 内嵌转义与 HTML 文本转义"
+    },
+    {
+      "id": "structure-step",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 16,
+      "endLine": 19,
+      "verification": "unverified",
+      "note": "结构与收据失败立即中止；拒绝运行时闭合标签"
+    },
+    {
+      "id": "payload-step",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 20,
+      "endLine": 26,
+      "verification": "unverified",
+      "note": "布局、转义、离线外壳及内容清单"
+    },
+    {
+      "id": "budget-step",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 27,
+      "endLine": 28,
+      "verification": "unverified",
+      "note": "超限失败，否则返回 HTML、收据与 payload"
+    },
+    {
+      "id": "inspect",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 30,
+      "endLine": 49,
+      "verification": "unverified",
+      "note": "检查四个内嵌区块、内容指纹与重编译布局"
+    },
+    {
+      "id": "write",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/packager.ts",
+      "startLine": 50,
+      "endLine": 55,
+      "verification": "unverified",
+      "note": "同目录临时文件写入后 rename；finally 尝试清理临时文件"
+    },
+    {
+      "id": "receipt",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/validator.ts",
+      "startLine": 154,
+      "endLine": 165,
+      "verification": "unverified",
+      "note": "匹配输入指纹、版本、快照、全部证据和文件行数"
+    },
+    {
+      "id": "source",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/validator.ts",
+      "startLine": 111,
+      "endLine": 152,
+      "verification": "unverified",
+      "note": "先检查结构，再读取源码比对文件指纹、行号和片段"
+    },
+    {
+      "id": "structure",
+      "snapshotId": "snap-a1e41fe7a3425b7b",
+      "path": "src/validator.ts",
+      "startLine": 8,
+      "endLine": 109,
+      "verification": "unverified",
+      "note": "Schema、预算、树、引用、端口、流程与片段分区的结构校验"
+    }
+  ],
+  "snippets": [
+    {
+      "id": "s-cli-build",
+      "evidenceId": "cli-build",
+      "label": "build 分支：参数、可选源码复核、候选构建、完整性检查、两次单文件写入",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 72,
+          "endLine": 84,
+          "text": "  if (command === 'build') {\n    const validationPath = required(v.validation, '--validation'), out = required(v.out, '--out'), receiptOut = v.receipt ?? join(dirname(out), 'build-receipt.json');\n    await protect([out, receiptOut], [path, validationPath]);\n    const map = await readJSON(path) as CodeMap, validation = await readJSON(validationPath) as ValidationReceipt;\n    if (v.repo) { const current = await validateMap(map, v.repo); if (!current.passed) throw new CodeMapError(current.diagnostics[0]); }\n    const result = buildHTML(map, validation, await readAssets());\n    if (v.repo) await protect([out, receiptOut], map.snapshot.files.map(file => resolve(v.repo!, file.path)));\n    // Inspect candidate before replacing the previous valid HTML.\n    inspectHTML(result.html);\n    await writeAtomic(receiptOut, JSON.stringify(result.receipt, null, 2) + '\\n');\n    await writeAtomic(out, result.html);\n    console.log(v.json ? JSON.stringify(result.receipt, null, 2) : `已生成 ${out}（${result.receipt.bytes} 字节）；构建收据 ${receiptOut}`); return;\n  }"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-cli-error",
+      "evidenceId": "cli-error",
+      "label": "异常转换为诊断和退出码",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 88,
+          "endLine": 93,
+          "text": "main().catch(err => {\n  const diagnostic = err instanceof CodeMapError ? err.diagnostic : { code: 'E_IO', pointer: '', message: err instanceof Error ? err.message : String(err), hint: '检查输入路径和输出目录权限。', exitCode: 5 };\n  if (process.argv.includes('--json')) console.log(JSON.stringify({ passed: false, diagnostics: [diagnostic] }, null, 2));\n  else console.error(`${diagnostic.code} ${diagnostic.pointer}: ${diagnostic.message}\\n${diagnostic.hint}`);\n  process.exitCode = diagnostic.exitCode;\n});"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-build",
+      "evidenceId": "build",
+      "label": "构建候选，不写磁盘",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 15,
+          "endLine": 29,
+          "text": "export function buildHTML(map: CodeMap, receipt: ValidationReceipt, assets: { js: string; css: string }): { html: string; receipt: BuildReceipt; payload: MapPayload } {\n  const diagnostics = validateStructure(map);\n  if (diagnostics.length) throw new CodeMapError(diagnostics[0]);\n  validateReceipt(map, receipt);\n  if (/<\\/script/i.test(assets.js) || /<\\/style/i.test(assets.css)) fail('E_RUNTIME', '运行时包含不允许的 HTML 终止标记。', 2);\n  const payload: MapPayload = { map, scene: compileLayout(map), validation: receipt };\n  const data = safeJSON(payload);\n  const shell = `<!doctype html>\n<html lang=\"${escapeHTML(map.language)}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light dark\"><meta name=\"referrer\" content=\"no-referrer\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'\"><title>${escapeHTML(map.title)} · CodeMap</title><style id=\"codemap-style\">${assets.css}</style></head>\n<body><div id=\"app\"><noscript>这份地图需要 JavaScript 才能缩放和搜索；所有数据与源码都已内嵌，不需要网络。</noscript></div><script id=\"codemap-data\" type=\"application/json\">${data}</script><script id=\"codemap-build\" type=\"application/json\">${receiptMarker}</script><script id=\"codemap-runtime\">${assets.js}</script></body></html>\\n`;\n  const manifest = { format: 'codemap-build-1' as const, compilerVersion: VERSION, layoutVersion: payload.scene.version, inputSha256: sha256(canonicalJSON(map)), validationSha256: sha256(canonicalJSON(receipt)), payloadSha256: sha256(data), runtimeSha256: sha256(assets.js), styleSha256: sha256(assets.css), shellSha256: sha256(shell) };\n  const html = shell.replace(receiptMarker, safeJSON(manifest));\n  if (Buffer.byteLength(html) > LIMITS.htmlBytes) fail('E_HTML_BUDGET', 'HTML 超过 5MB；请减少所选代码或拆分阅读目标。', 4);\n  return { html, payload, receipt: { ...manifest, artifactSha256: sha256(html), bytes: Buffer.byteLength(html) } };\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-safe-json",
+      "evidenceId": "safe-json",
+      "label": "JSON 内嵌转义与 HTML 文本转义",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 9,
+          "endLine": 10,
+          "text": "export const safeJSON = (value: unknown) => canonicalJSON(value).replace(/</g, '\\\\u003c').replace(/>/g, '\\\\u003e').replace(/&/g, '\\\\u0026').replace(/\\u2028/g, '\\\\u2028').replace(/\\u2029/g, '\\\\u2029');\nconst escapeHTML = (value: string) => value.replace(/[&<>\"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', \"'\": '&#39;' })[char]!);"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-structure-step",
+      "evidenceId": "structure-step",
+      "label": "结构与收据失败立即中止；拒绝运行时闭合标签",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 16,
+          "endLine": 19,
+          "text": "  const diagnostics = validateStructure(map);\n  if (diagnostics.length) throw new CodeMapError(diagnostics[0]);\n  validateReceipt(map, receipt);\n  if (/<\\/script/i.test(assets.js) || /<\\/style/i.test(assets.css)) fail('E_RUNTIME', '运行时包含不允许的 HTML 终止标记。', 2);"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-payload-step",
+      "evidenceId": "payload-step",
+      "label": "布局、转义、离线外壳及内容清单",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 20,
+          "endLine": 26,
+          "text": "  const payload: MapPayload = { map, scene: compileLayout(map), validation: receipt };\n  const data = safeJSON(payload);\n  const shell = `<!doctype html>\n<html lang=\"${escapeHTML(map.language)}\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"light dark\"><meta name=\"referrer\" content=\"no-referrer\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'\"><title>${escapeHTML(map.title)} · CodeMap</title><style id=\"codemap-style\">${assets.css}</style></head>\n<body><div id=\"app\"><noscript>这份地图需要 JavaScript 才能缩放和搜索；所有数据与源码都已内嵌，不需要网络。</noscript></div><script id=\"codemap-data\" type=\"application/json\">${data}</script><script id=\"codemap-build\" type=\"application/json\">${receiptMarker}</script><script id=\"codemap-runtime\">${assets.js}</script></body></html>\\n`;\n  const manifest = { format: 'codemap-build-1' as const, compilerVersion: VERSION, layoutVersion: payload.scene.version, inputSha256: sha256(canonicalJSON(map)), validationSha256: sha256(canonicalJSON(receipt)), payloadSha256: sha256(data), runtimeSha256: sha256(assets.js), styleSha256: sha256(assets.css), shellSha256: sha256(shell) };\n  const html = shell.replace(receiptMarker, safeJSON(manifest));"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-budget-step",
+      "evidenceId": "budget-step",
+      "label": "超限失败，否则返回 HTML、收据与 payload",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 27,
+          "endLine": 28,
+          "text": "  if (Buffer.byteLength(html) > LIMITS.htmlBytes) fail('E_HTML_BUDGET', 'HTML 超过 5MB；请减少所选代码或拆分阅读目标。', 4);\n  return { html, payload, receipt: { ...manifest, artifactSha256: sha256(html), bytes: Buffer.byteLength(html) } };"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-inspect",
+      "evidenceId": "inspect",
+      "label": "检查四个内嵌区块、内容指纹与重编译布局",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 30,
+          "endLine": 49,
+          "text": "export function inspectHTML(html: string): BuildReceipt {\n  if (Buffer.byteLength(html) > LIMITS.htmlBytes) fail('E_HTML_BUDGET', '产物超过读取预算。', 4);\n  function content(tag: 'style' | 'script', id: string, json = false) {\n    const start = `<${tag} id=\"${id}\"${json ? ' type=\"application/json\"' : ''}>`;\n    const at = html.indexOf(start), end = html.indexOf(`</${tag}>`, at + start.length);\n    if (at < 0 || end < 0 || html.indexOf(start, at + 1) !== -1) fail('E_ARTIFACT', `产物区块缺失或重复：${id}`, 2);\n    return { text: html.slice(at + start.length, end), start: at + start.length, end };\n  }\n  try {\n    const data = content('script', 'codemap-data', true), runtime = content('script', 'codemap-runtime'), style = content('style', 'codemap-style'), build = content('script', 'codemap-build', true);\n    const receipt = JSON.parse(build.text) as Omit<BuildReceipt, 'bytes' | 'artifactSha256'>;\n    const payload = JSON.parse(data.text) as MapPayload;\n    const shell = html.slice(0, build.start) + receiptMarker + html.slice(build.end);\n    if (receipt.format !== 'codemap-build-1' || receipt.compilerVersion !== VERSION || receipt.payloadSha256 !== sha256(data.text) || receipt.runtimeSha256 !== sha256(runtime.text) || receipt.styleSha256 !== sha256(style.text) || receipt.shellSha256 !== sha256(shell) || receipt.inputSha256 !== sha256(canonicalJSON(payload.map)) || receipt.validationSha256 !== sha256(canonicalJSON(payload.validation))) fail('E_ARTIFACT_INTEGRITY', '产物内容与构建清单不匹配。', 3);\n    const diagnostics = validateStructure(payload.map); if (diagnostics.length) throw new CodeMapError(diagnostics[0]);\n    validateReceipt(payload.map, payload.validation);\n    if (canonicalJSON(compileLayout(payload.map)) !== canonicalJSON(payload.scene)) fail('E_ARTIFACT_LAYOUT', '产物布局与地图不匹配。', 3);\n    return { ...receipt, artifactSha256: sha256(html), bytes: Buffer.byteLength(html) };\n  } catch (err) { if (err instanceof CodeMapError) throw err; fail('E_ARTIFACT', '无法解析 CodeMap HTML 产物。', 2); }\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-write",
+      "evidenceId": "write",
+      "label": "同目录临时文件写入后 rename；finally 尝试清理临时文件",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 50,
+          "endLine": 55,
+          "text": "export async function writeAtomic(path: string, content: string): Promise<void> {\n  const target = resolve(path); await mkdir(dirname(target), { recursive: true });\n  const temporary = `${target}.${randomUUID()}.tmp`;\n  try { await writeFile(temporary, content, { flag: 'wx' }); await rename(temporary, target); }\n  finally { await unlink(temporary).catch(() => {}); }\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-receipt",
+      "evidenceId": "receipt",
+      "label": "匹配输入指纹、版本、快照、全部证据和文件行数",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 154,
+          "endLine": 165,
+          "text": "export function validateReceipt(map: CodeMap, value: unknown): asserts value is ValidationReceipt {\n  const r = value as ValidationReceipt | null;\n  const bad = () => { throw new CodeMapError({ code: 'E_VALIDATION_RECEIPT', pointer: '', message: '验证收据缺失、失败、版本过期或与当前地图不匹配。', hint: '重新运行 validate --repo 并使用新的 JSON 收据。', exitCode: 3 }); };\n  if (!r || r.format !== 'codemap-validation-1' || r.compilerVersion !== VERSION || !r.passed || r.inputSha256 !== sha256(canonicalJSON(map)) || r.snapshotId !== map.snapshot.id || !r.checks?.schema || !r.checks.references || !r.checks.sources || !Array.isArray(r.diagnostics) || r.diagnostics.length || !Array.isArray(r.files) || !Array.isArray(r.matchedEvidenceIds)) bad();\n  if (canonicalJSON(r!.matchedEvidenceIds.slice().sort()) !== canonicalJSON(map.evidence.map(e => e.id).sort())) bad();\n  if (r!.files.length !== map.snapshot.files.length) bad();\n  for (const file of map.snapshot.files) {\n    const found = r!.files.filter(f => f.path === file.path);\n    if (found.length !== 1 || found[0].sha256 !== file.sha256 || !Number.isSafeInteger(found[0].lineCount) || found[0].lineCount < 0) bad();\n    if (map.evidence.some(ev => ev.path === file.path && ev.endLine > found[0].lineCount)) bad();\n  }\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    },
+    {
+      "id": "s-source",
+      "evidenceId": "source",
+      "label": "先检查结构，再读取源码比对文件指纹、行号和片段",
+      "language": "typescript",
+      "segments": [
+        {
+          "kind": "source",
+          "startLine": 111,
+          "endLine": 152,
+          "text": "export async function validateMap(input: unknown, repo?: string): Promise<ValidationReceipt> {\n  const diagnostics = validateStructure(input);\n  const map = input as CodeMap;\n  const receipt: ValidationReceipt = { format: 'codemap-validation-1', compilerVersion: VERSION, inputSha256: '', snapshotId: map?.snapshot?.id ?? '', passed: false,\n    checks: { schema: !diagnostics.some(d => d.exitCode === 2), references: diagnostics.length === 0, sources: false }, files: [], matchedEvidenceIds: [], diagnostics };\n  if (diagnostics.some(d => d.code === 'E_INPUT_BUDGET')) return receipt;\n  receipt.inputSha256 = sha256(canonicalJSON(input));\n  if (diagnostics.length) return receipt;\n  const add = (code: string, pointer: string, message: string, objectId?: string) => diagnostics.push({ code, pointer, message, objectId, exitCode: 3, hint: '从记录的代码快照重新提取并验证。' });\n  if (!repo) { add('E_SOURCE_REQUIRED', '/snapshot', '需要 --repo 指向可读取的源码快照；IR 自报 matched 不构成验证。'); return receipt; }\n  if (map.snapshot.kind === 'git') {\n    const state = gitState(repo);\n    if (!state || state.revision !== map.snapshot.revision || (!map.snapshot.dirty && state.dirty)) add('E_GIT_SNAPSHOT', '/snapshot', 'Git 基线提交或 clean 状态与输入目录不匹配。');\n  }\n  const contents = new Map<string, Awaited<ReturnType<typeof readSource>>>(); let bytes = 0;\n  for (const [i, file] of map.snapshot.files.entries()) {\n    try {\n      const source = await readSource(repo, file.path); bytes += source.bytes;\n      if (bytes > LIMITS.totalFileBytes) { diagnostics.push({ code: 'E_SOURCE_BUDGET', pointer: '/snapshot/files', message: '读取源码总量超过预算。', hint: '收窄文件范围。', exitCode: 4 }); break; }\n      if (source.sha256 !== file.sha256) add('E_SOURCE_HASH', `/snapshot/files/${i}/sha256`, `文件内容指纹不一致：${file.path}`);\n      else { contents.set(file.path, source); receipt.files.push({ path: file.path, sha256: source.sha256, lineCount: source.lines.length }); }\n    } catch (err) {\n      if (err instanceof CodeMapError) diagnostics.push(err.diagnostic);\n      else add('E_SOURCE_READ', `/snapshot/files/${i}`, `无法读取 ${file.path}：${err instanceof Error ? err.message : String(err)}`);\n    }\n  }\n  for (const [i, ev] of map.evidence.entries()) {\n    const file = contents.get(ev.path);\n    if (file && ev.endLine <= file.lines.length) receipt.matchedEvidenceIds.push(ev.id);\n    else add('E_SOURCE_RANGE', `/evidence/${i}`, '无法验证证据行范围或文件指纹。', ev.id);\n  }\n  const evidence = indexById(map.evidence);\n  for (const [i, snippet] of map.snippets.entries()) {\n    const ev = evidence[snippet.evidenceId], file = contents.get(ev.path); if (!file) continue;\n    snippet.segments.forEach((segment, j) => {\n      if (segment.kind === 'source' && segment.text !== file.lines.slice(segment.startLine - 1, segment.endLine).join('\\n')) add('E_SOURCE_TEXT_MISMATCH', `/snippets/${i}/segments/${j}`, `原文不符：${ev.path}:${segment.startLine}–${segment.endLine}`, snippet.id);\n    });\n  }\n  receipt.files.sort((a, b) => a.path < b.path ? -1 : 1); receipt.matchedEvidenceIds.sort();\n  receipt.checks.sources = diagnostics.length === 0; receipt.passed = diagnostics.length === 0;\n  return receipt;\n}"
+        }
+      ],
+      "preservedSemantics": [
+        "完整保留该证据区间；其他函数区间需沿证据查看，不拼成完整函数。"
+      ]
+    }
+  ],
+  "primaryPath": [
+    "root",
+    "candidate",
+    "buildHTML",
+    "embed",
+    "source-code"
+  ],
+  "coverage": {
+    "completePaths": [
+      "CLI build 到候选构建、检查和两次写入的静态调用链",
+      "buildHTML 从检查到 HTML 大小预算与返回",
+      "验证收据不匹配的拒绝路径"
+    ],
+    "partialPaths": [
+      "I/O 失败的诊断与单文件清理；未注入磁盘故障"
+    ],
+    "excludedPaths": [
+      "浏览器事件与布局内部实现",
+      "Linux VFS"
+    ],
+    "openQuestions": [
+      "多文件事务与断电持久性不在当前实现保证内",
+      "浏览器不可启动，尚未目视验收此地图"
+    ]
+  }
+}
